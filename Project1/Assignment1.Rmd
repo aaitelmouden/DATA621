@@ -9,6 +9,11 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(corrplot)
+library(tidyverse)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(corrplot)
 ```
 
 
@@ -50,9 +55,77 @@ the data was provided in csv file. The files contain approximately 2200 records.
 
 ## Data exploration 
 
+The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows. 
+```{r}
+#Import data 
+
+data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
+glimpse(data)
+
+```
+At first glance, the column BATTING_HBP has numerous NA values that will need to be addressed before building a model. It's worth exploring for other columns with NA values.
+```{r}
+summary(data)
+```
+```{r}
+max_obs <- 2276
+batting_so_na <- ((102/max_obs) * 100)
+baserun_sb_na <- (131/max_obs) * 100
+baserun_cs_na <- (772/max_obs) * 100
+batting_hbp_na <- (2085/max_obs) * 100
+pitching_so_na <- (102/max_obs) * 100
+fielding_dp_na <- (286/max_obs) * 100
+
+df_percent_na <- data.frame(Columns_w_NA = c("team_batting_so", "team_baserun_sb", "team_baserun_cs", "team_batting_hbp", "team_pitching_so", "team_fielding_dp"), Percent_NA = c(batting_so_na, baserun_sb_na, baserun_cs_na, batting_hbp_na, pitching_so_na, fielding_dp_na))
+
+as_tibble(df_percent_na)
+```
+
+```{r}
+
+
+data[-c(1)] %>%
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram(binwidth=1)
+
+```
+```{r}
+
+#pairwise.complete.obs ignores NA values and computes correlation on complete observations
+#we might have to run these corrplots again after we handle the NA values
+chart.Correlation(data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
+```
+
+
+```{r}
+data.corr <- cor(data[-c(1)], use="pairwise.complete.obs")
+
+corrplot(data.corr, type = "lower", method="square")
+```
 
 ### Variable Selection
+```{r, include = FALSE}
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+```
 
+```{r}
+#eliminate INDEX from data frame
+data_no_index <- data[-c(1)]
+
+cor_matrix <- rcorr(as.matrix(data_no_index))
+
+flattenCorrMatrix(cor_matrix$r, cor_matrix$P)
+```
 ### Outliers
 
 ### Correlations among predictors
