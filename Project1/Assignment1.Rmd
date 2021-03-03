@@ -58,15 +58,15 @@ the data was provided in csv file. The files contain approximately 2200 records.
 The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows. 
 ```{r}
 #Import data 
+# I replaced the variable name data with train_data since we'll have a test data
 
-data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
-glimpse(data)
+train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
+glimpse(train_data)
 
 ```
 At first glance, the column BATTING_HBP has numerous NA values that will need to be addressed before building a model. It's worth exploring for other columns with NA values.
-```{r}
-summary(data)
-```
+
+
 ```{r}
 max_obs <- 2276
 batting_so_na <- ((102/max_obs) * 100)
@@ -80,32 +80,57 @@ df_percent_na <- data.frame(Columns_w_NA = c("team_batting_so", "team_baserun_sb
 
 as_tibble(df_percent_na)
 ```
+```{r}
+#Here I am adding another way to show missing data library VIM, so we can add only the plot to our report
+# reference https://datasciencebeginners.com/2018/11/07/visualization-of-imputed-values-using-vim/
+
+mice_plot <- aggr(train_data, col=c('lightblue','red'),numbers=TRUE, sortVars=TRUE,labels=names(train_data), cex.axis=0.7,gap=3, ylab=c("Missing data","Pattern"), oma = c(10,5,5,3))
+```
 
 ```{r}
 
 
-data[-c(1)] %>%
+train_data[-c(1)] %>%
   gather() %>% 
   ggplot(aes(value)) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram(binwidth=1)
 
 ```
+
+
+
+
+### Outliers
+
+The following diagram shows the outliers for all the variables, both dependent and independent.
+
+```{r}
+ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
+  geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
+  coord_cartesian(ylim = c(0, 1000)) +
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+```
+As we can see from the graph only 4 of the 16 variables are normally or close to normally distributed.
+the other 12 variables have a significant skew. The response variable Target_wins seems to be normally distributed. Batting_Hr, Batting_SO and Pitching_HR are bi-modal. 10 of the 16 variables have a minimum value of 0. This is not a major concern as the total % of 0 in each column is less than 1%. The variables Batting_BB, Batting_CS, Baserun_SB, Pitching_BB and Fielding_E have a significant number of outliers.
+
+### Correlations among predictors and Variable Selection
+
+
 ```{r}
 
 #pairwise.complete.obs ignores NA values and computes correlation on complete observations
 #we might have to run these corrplots again after we handle the NA values
-chart.Correlation(data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
+chart.Correlation(train_data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
 ```
 
-
 ```{r}
-data.corr <- cor(data[-c(1)], use="pairwise.complete.obs")
+data.corr <- cor(train_data[-c(1)], use="pairwise.complete.obs")
 
 corrplot(data.corr, type = "lower", method="square")
 ```
 
-### Variable Selection
 ```{r, include = FALSE}
 flattenCorrMatrix <- function(cormat, pmat) {
   ut <- upper.tri(cormat)
@@ -120,17 +145,40 @@ flattenCorrMatrix <- function(cormat, pmat) {
 
 ```{r}
 #eliminate INDEX from data frame
-data_no_index <- data[-c(1)]
+data_no_index <- train_data[-c(1)]
 
 cor_matrix <- rcorr(as.matrix(data_no_index))
 
 flattenCorrMatrix(cor_matrix$r, cor_matrix$P)
 ```
-### Outliers
 
-### Correlations among predictors
+From the table we can see that there are positive or negative correlations among the predictors. If we look at the numerical correlations with the response variable. We can see that the predictors Batting_H, Batting_HR, Batting_BB, Pitching_H, and Pitching_HR are more correlated and should be included in our regression.
+
+Also Examining significant correlations among the independent variables, we see that four of the pairs have a correlation close to 1. This can lead to multicollinearity issues in our analysis.
 
 ## Data Preparation
+
+First we will remove Batting_HBP (Hit by Pitch) which has 92% missing values.
+
+```{r}
+train <- train[-10]
+```
+
+We will look at the patterns and intersections of missingness among the variables, using the naniar package. We can see that only 22 of the observations have all 5 variables missing, we will just delete these cases. The pattern suggests that the variables are Missing at Random (MAR)
+
+```{r}
+# Here is an example how to use the package https://naniar.njtierney.com/articles/naniar-visualisation.html
+library(naniar)
+par(mfrow=c(1,2))
+gg_miss_upset(train_data, 
+              nsets = 5,
+              nintersects = NA)
+gg_miss_case(train_data)+
+  theme_classic()
+```
+By looking at the patterns and intersections of missing data among the variables. We can see that 5 variables have missing values, Team_BATTING has the most missing values so we are completely removing these observations. Overall, the pattern suggests that the variables are Missing at Random (MAR).
+
+
 
 ## Build Models
 
