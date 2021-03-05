@@ -1,5 +1,5 @@
 ---
-title: "DATA621 | Project I"
+title: "Regression Analysis of Baseball Team Performance"
 author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
 date: "2/12/2021"
 output:
@@ -19,7 +19,8 @@ library(corrplot)
 
 ## Abstract
 
-To see how regression will help us evaluate baseball team performance, we will explore, analyze and model a historical baseball data set containing approximately 2200 records, to determine a team’s performance based on statistics of their performance. Each record represents a professional baseball team from the years 1871 to 2006 inclusive, and the data include the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season.
+To see how regression will help us evaluate baseball team performance, this project is designed to explore whether a teams success in any given season can be predicted or explained by any number of statistics in that season. Our goal is to build a multiple linear regression model on the training data to predict the number of wins for the team. we will explore, analyze and model a historical baseball data set containing approximately 2200 records. 
+Each record represents a professional baseball team from the years 1871 to 2006 inclusive, and the data include the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season.
 
 While correlation does not equal causation it is suggested that a focus on some of the variables such as a focus on either single hits or triple or more hits to the exclusion of doubles might be worth pursuing. Also the data suggests that a focus on home runs allowed may not be worth giving up a number of more normal hits.
 
@@ -29,9 +30,15 @@ While correlation does not equal causation it is suggested that a focus on some 
 
 Because baseball is so numbers-heavy, there are many different statistics to consider when searching for the best predictors of team success. There are offensive statistics (offense meaning when a team is batting) and defensive statistics (defense meaning when a team is in the field). These categories can be broken up into many more subcategories. However, for the purpose of the this project we will use the available data to build a multiple linear regression model on the training data to predict the number of wins for  the  team.
 
-## Data Used
+To see how regression will help us predict the number of wins for  the  team, we actually don’t need to understand all the details about the game of baseball, which has over 100 rules. Here, we distill the sport to the basic knowledge one needs to know how to effectively attack the data science problem. The goal of a baseball game is to score more runs (points) than the other team. Each team has 9 batters that have an opportunity to hit a ball with a bat in a predetermined order. After the 9th batter has had their turn, the first batter bats again, then the second, and so on. Each time a batter has an opportunity to bat, we call it a plate appearance (PA). At each PA, the other team’s pitcher throws the ball and the batter tries to hit it. The PA ends with an binary outcome: the batter either makes an out (failure) and returns to the bench or the batter doesn’t (success) and can run around the bases, and potentially score a run (reach all 4 bases). Each team gets nine tries, referred to as innings, to score runs and each inning ends after three outs (three failures).
 
-the data was provided in csv file. The files contain approximately 2200 records. Each record represents a professional baseball team from the years 1871 to 2006 inclusive. Each record has the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season.
+\newpage
+
+## Data Exploration
+
+The dataset we will be using was provided in csv file. The files contain approximately 2200 records. Each record represents a professional baseball team from the years 1871 to 2006 inclusive. Each record has the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season.
+The game statistics that will be used in this study are the following:
+
 
 | VARIABLE NAME    | DEFINITION                             | THEORETICAL EFFECT      |
 |------------------|----------------------------------------|-------------------------|
@@ -53,10 +60,10 @@ the data was provided in csv file. The files contain approximately 2200 records.
 | TEAM_PITCHING_HR | Homeruns allowed                       | Negative Impact on Wins |
 | TEAM_PITCHING_SO | Strikeouts by pitchers                 | Positive Impact on Wins |
 
-## Data exploration 
 
-The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows. 
-```{r}
+The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows.  Based on initial observations, the data contains 2276 teams with a variety of baseball performance statistics. 
+
+```{r echo=FALSE}
 #Import data 
 # I replaced the variable name data with train_data since we'll have a test data
 
@@ -64,10 +71,57 @@ train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/m
 glimpse(train_data)
 
 ```
-At first glance, the column BATTING_HBP has numerous NA values that will need to be addressed before building a model. It's worth exploring for other columns with NA values.
+\newpage
+
+At first glance, the column BATTING_HBP has numerous NA values that will need to be addressed before building a model. Figure 1 show summary statistics of the target wins. The noteworthy statistics are the average number of wins in a season is 81 games, the median number of wins in a season is 82 games, and the standard deviation is 16 games. 
+
+\begin{center}
+Figure 1 :  Summary Statistics
+\end{center}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(gtsummary)
+wins <- train_data %>% select(TARGET_WINS, TEAM_BATTING_H, TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, TEAM_BATTING_BB, TEAM_BATTING_HBP, TEAM_BATTING_SO, TEAM_BASERUN_SB, TEAM_BASERUN_CS, TEAM_FIELDING_E, TEAM_FIELDING_DP, TEAM_PITCHING_BB, TEAM_PITCHING_SO, TEAM_FIELDING_E, TEAM_FIELDING_DP)
+table1 <- tbl_summary(wins,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
+```
+
+\begin{center}
+Mean (SD) Median Minimum Maximum 
+\end{center}
+
+By examining the target wins variable in detail, there is a clear guideline of how many wins each team should approximately win. Most teams will likely win the average number of games (81), but there will be some variability from the average with some teams winning more or less than 81 games.
+
+The other variables also play an important role in understanding the data. In Figure 1, summary statistics are presented for all the variables. it is sufficient in getting the gist of each variable’s distribution. For example, the average Base Hits by batters per team is 1469 with the minimum base hits at 891 and maximum base hits at 2554. Remember that the dataset contains baseball statistics on 2276 teams. Missing values were excluded from the summary and they will be dealt with in the data preparation section of this report.
+
+A quick look at Figure 2 will reveal the distribution of the target wins. The distribution is approximately normal with a majority of the target wins falling in the center of the distribution.The approximate normal distribution is confirmed by the QQ plot below the distribution plot. Most of the target wins fall on the line in the QQ plot with some data points diverging at the ends. This indicates possibility of outliers where some teams are winning more games or losing more games than what is expected in the normal range.In the boxplot, there are points that fall outside the whiskers which confirms our suspicions of outliers seen in the QQ plot.
 
 
-```{r}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Layout to split the screen
+layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
+
+# Draw the boxplot and the histogram 
+par(mar=c(0, 3.1, 1.1, 2.1))
+boxplot(train_data$TARGET_WINS ,main="Figure 2 : Distribution and Probability Plot for TARGET_WINS",cex.main=1, horizontal=TRUE , ylim=c(0,150), xaxt="n" , col=rgb(0.8,0.8,0,0.5) , frame=F)
+par(mar=c(4, 3.1, 1.1, 2.1))
+hist(train_data$TARGET_WINS , breaks=40 , col=rgb(0.2,0.8,0.5,0.5) , border=F , main="" , xlab="TARGET WINS", xlim=c(0,150))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+qqnorm(train_data$TARGET_WINS, pch = 1, frame = FALSE)
+qqline(train_data$TARGET_WINS, col = "steelblue", lwd = 2)
+```
+
+
+Now in order to build our models properly It's worth exploring for other columns with NA values.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(gt)
 max_obs <- 2276
 batting_so_na <- ((102/max_obs) * 100)
 baserun_sb_na <- (131/max_obs) * 100
@@ -78,23 +132,22 @@ fielding_dp_na <- (286/max_obs) * 100
 
 df_percent_na <- data.frame(Columns_w_NA = c("team_batting_so", "team_baserun_sb", "team_baserun_cs", "team_batting_hbp", "team_pitching_so", "team_fielding_dp"), Percent_NA = c(batting_so_na, baserun_sb_na, baserun_cs_na, batting_hbp_na, pitching_so_na, fielding_dp_na))
 
-as_tibble(df_percent_na)
-```
-```{r}
-#Here I am adding another way to show missing data library VIM, so we can add only the plot to our report
-# reference https://datasciencebeginners.com/2018/11/07/visualization-of-imputed-values-using-vim/
+# the largest islands in the world
+gt_tbl <- gt(data = df_percent_na, )
 
-mice_plot <- aggr(train_data, col=c('lightblue','red'),numbers=TRUE, sortVars=TRUE,labels=names(train_data), cex.axis=0.7,gap=3, ylab=c("Missing data","Pattern"), oma = c(10,5,5,3))
+# Show the gt Table
+gt_tbl
 ```
 
+
 ```{r}
 
 
-train_data[-c(1)] %>%
-  gather() %>% 
-  ggplot(aes(value)) +
-    facet_wrap(~ key, scales = "free") +
-    geom_histogram(binwidth=1)
+#train_data[-c(1)] %>%
+#  gather() %>% 
+#  ggplot(aes(value)) +
+#    facet_wrap(~ key, scales = "free") +
+#    geom_histogram(binwidth=1)
 
 ```
 
@@ -105,7 +158,7 @@ train_data[-c(1)] %>%
 
 The following diagram shows the outliers for all the variables, both dependent and independent.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
   geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
   coord_cartesian(ylim = c(0, 1000)) +
@@ -117,6 +170,31 @@ the other 12 variables have a significant skew. The response variable Target_win
 
 ### Correlations among predictors and Variable Selection
 
+It is possible that not all variables will need to be used in creating an accurate model. In Figure 4, a correlation value is computed for each variable against target wins. Some variables are highly correlated with target wins, while other variables are not. For example, Base Hits by batters has a value of 0.38877 which is high while Caught stealing is barely correlated with target wins with a value of 0.0224.There is also a column for p-values which indicates whether the correlations are significant. We can use a decision rule of 95% meaning any variable with a p-value of less than 0.05 is significant. It appears that Strikeouts by batters (TEAM_BATTING_SO),Caught stealing(TEAM_BASERUN_CS), Batters hit by pitch (TEAM_BATTING_HBP), and Double plays (TEAM_FIELDING_DP)do not meet our decision rule and could be excluded from use.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(corrr)
+library(ggplot2)
+
+COR <- train_data %>% 
+  correlate() %>% 
+  focus(TARGET_WINS)
+gt(COR)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+COR %>% 
+  mutate(rowname = factor(term, levels = term[order(TARGET_WINS)])) %>%  # Order by correlation strength
+  ggplot(aes(x = rowname, y = TARGET_WINS)) +
+    geom_bar(stat = "identity") +
+    ylab("Correlation with TARGET WINS") +
+    xlab("Variables") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ ggtitle("Figure 4: Correlation Against Target Win")
+```
+Before entirely excluding variables, it is a good idea to transform the data by fixing missing values or combining variables and reexamine the viability of those variables for predicting wins.
+
+------------------------------
+Comment : We need to decide if we can keep below graph 
+------------------------------
 
 ```{r}
 
@@ -158,10 +236,16 @@ Also Examining significant correlations among the independent variables, we see 
 
 ## Data Preparation
 
+Missing values need to be handled before building models.They can be handled by either dropping the records, dropping the entire variable, or imputation. In this case, it was determined that Batters hit by pitch variableshould be dropped altogether prior to model building because it has too many missing values to properly impute.All other variables with missing values will be considered for the model because a majority of the records are not missing.These variables will be imputed.
+
+---------------------------------------------
+Comment : We need to decide how to handle the missing values: Remove it or input the mean values  
+--------------------------------------------------
+
 First we will remove Batting_HBP (Hit by Pitch) which has 92% missing values.
 
 ```{r}
-train <- train[-10]
+train_data <- train_data[-10]
 ```
 
 We will look at the patterns and intersections of missingness among the variables, using the naniar package. We can see that only 22 of the observations have all 5 variables missing, we will just delete these cases. The pattern suggests that the variables are Missing at Random (MAR)
@@ -182,7 +266,29 @@ By looking at the patterns and intersections of missing data among the variables
 
 ## Build Models
 
+### MODEL 1: MEAN FULL MODEL
+
+Thisis a full model containing all the variables with the meanused for missing values. This is a good starting model to determine how well each variable helps predict wins. The mean is generally an adequate guess for missing values. In this model, no selection technique is used. All variables are manually included.
+
+### MODEL 2
+
 ## Select Model
+
+Here we can either select variable that seem correlated for this simple direct model or create mean model using the stepwise selection technique, or median with stepwise
+
+### MODEL 3
+
+Log Transformation 
+
+### MODEL 4 
+
+BoxCox Transformation
+
+### MODEL 5 
+
+kNN Imputation
+
+## Select A Model
 
 ## Appendix 
 
