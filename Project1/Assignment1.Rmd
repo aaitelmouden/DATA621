@@ -3,7 +3,8 @@ title: "Regression Analysis of Baseball Team Performance"
 author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
 date: "2/12/2021"
 output:
-  pdf_document: default
+  pdf_document: 
+    latex_engine: xelatex
   
 ---
 
@@ -86,6 +87,14 @@ wins <- train_data %>% select(TARGET_WINS, TEAM_BATTING_H, TEAM_BATTING_2B, TEAM
 table1 <- tbl_summary(wins,
           statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
 table1
+```
+
+In recent years in baseball, slugging percentage has become a popular statistic in the analytics department of many teams. The name is a misnomer, since it is not actually a percentage, but rather a measure of bases produced per at bat, and is calculated by total bases (i.e. 1 for a single, 4 for a HR) divided by total at-bats. However, since this dataset doesn't contain information on at-bats, we will use a modified version of slugging percentage that measures average bases produced per hit.
+
+```{r}
+singles <- train_data$TEAM_BATTING_H - (train_data$TEAM_BATTING_2B + train_data$TEAM_BATTING_3B + train_data$TEAM_BATTING_HR)
+
+train_data$TEAM_BATTING_SLG <- ((train_data$TEAM_BATTING_HR *4)+ (train_data$TEAM_BATTING_3B*3) + (train_data$TEAM_BATTING_2B*2)+ singles)/train_data$TEAM_BATTING_H
 ```
 
 \begin{center}
@@ -263,7 +272,7 @@ The second technique for imputing missing values is to use a decision tree. This
 
 ### MODEL 1: MEAN FULL MODEL
 
-This is a full model containing all the variables with the meanused for missing values. This is a good starting model to determine how well each variable helps predict wins. The mean is generally an adequate guess for missing values. In this model, no selection technique is used. All variables are manually included.
+This is a full model containing all the variables with the meanusred for missing values. This is a good starting model to determine how well each variable helps predict wins. The mean is generally an adequate guess for missing values. In this model, no selection technique is used. All variables are manually included.
 
 To the that we used the Hmisc R package to imputes missing value using user defined statistical method (mean in our case)
 
@@ -276,7 +285,7 @@ train_model1$TEAM_BATTING_SO[is.na(train_model1$TEAM_BATTING_SO)] = mean(train_m
 train_model1$TEAM_BASERUN_SB[is.na(train_model1$TEAM_BASERUN_SB)] = mean(train_model1$TEAM_BASERUN_SB, na.rm=TRUE)
 train_model1$TEAM_BASERUN_CS[is.na(train_model1$TEAM_BASERUN_CS)] = mean(train_model1$TEAM_BASERUN_CS, na.rm=TRUE)
 train_model1$TEAM_PITCHING_SO[is.na(train_model1$TEAM_PITCHING_SO)] = mean(train_model1$TEAM_PITCHING_SO, na.rm=TRUE)
-train_model1$TEAM_FIELDING_DP[is.na(train_model1$TEAM_FIELDING_DP)] = mean(train_model1$TEAM_FIELDING_DP, na.rm=TRUE)
+#train_model1$TEAM_FIELDING_DP[is.na(train_model1$TEAM_FIELDING_DP)] = mean(train_model1$TEAM_FIELDING_DP, na.rm=TRUE)
 ```
 
 
@@ -304,6 +313,8 @@ Mean Square Error (MSE)
 ```{r}
 mean(model1$residuals^2)
 ```
+
+
 ```{r}
 layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
 plot(model1)
@@ -346,7 +357,7 @@ train_model2$TEAM_BATTING_SO[is.na(train_model2$TEAM_BATTING_SO)] = median(train
 train_model2$TEAM_BASERUN_SB[is.na(train_model2$TEAM_BASERUN_SB)] = median(train_model2$TEAM_BASERUN_SB, na.rm=TRUE)
 train_model2$TEAM_BASERUN_CS[is.na(train_model2$TEAM_BASERUN_CS)] = median(train_model2$TEAM_BASERUN_CS, na.rm=TRUE)
 train_model2$TEAM_PITCHING_SO[is.na(train_model2$TEAM_PITCHING_SO)] = median(train_model2$TEAM_PITCHING_SO, na.rm=TRUE)
-train_model2$TEAM_FIELDING_DP[is.na(train_model2$TEAM_FIELDING_DP)] = median(train_model2$TEAM_FIELDING_DP, na.rm=TRUE)
+#train_model2$TEAM_FIELDING_DP[is.na(train_model2$TEAM_FIELDING_DP)] = median(train_model2$TEAM_FIELDING_DP, na.rm=TRUE)
 ```
 
 ```{r}
@@ -377,6 +388,7 @@ plot(model2)
 ```
 
 **The resulting equation for Model 2 is :**
+\begin{center}
 
 WINS =+ 25.0602 \\
       +0.04824*Base Hits by batters \\
@@ -451,32 +463,13 @@ Behind the scenes rpart is automatically applying a range of cost complexity (α
 
 The complexity parameter (cp) in rpart is the minimum improvement in the model needed at each node. It’s based on the cost complexity of the model defined as
 
-![tree](./cp.png)
 
 The cp value is a stopping parameter. It helps speed up the search for splits because it can identify splits that don’t meet this criteria and prune them before going too far.
 
 
 Now lets run the model 
 
-```{r}
-model3 <- lm(TARGET_WINS ~ 
-               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
-               TEAM_BATTING_2B +  # Doubles by batters (2B) 
-               TEAM_BATTING_3B +  # Triples by batters (3B)
-               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
-               TEAM_BATTING_BB +  # Walks by batters
-               TEAM_BATTING_SO +  # Strikeouts by batters 
-               TEAM_BASERUN_SB +  # Stolen bases
-               TEAM_BASERUN_CS +  # Caught stealing 
-               TEAM_PITCHING_H +  # Hits allowed
-               TEAM_PITCHING_HR + # Homeruns allowed
-               TEAM_PITCHING_BB + # Walks allowed
-               TEAM_PITCHING_SO + # Strikeouts by pitchers
-               TEAM_FIELDING_E +  # Errors
-               TEAM_FIELDING_DP,  # Double Plays
-             data=train_model3)
-summary(model3)
-```
+
 
 
 ## Select A Model
@@ -484,8 +477,11 @@ summary(model3)
 ## Appendix 
 
 ## References
+<<<<<<< HEAD
 
 - Dealing with Missing Data using R : https://medium.com/coinmonks/dealing-with-missing-data-using-r-3ae428da2d17
 - Decision Tree : http://www.learnbymarketing.com/tutorials/rpart-decision-trees-in-r/
 - Decision Tree : https://www.datacamp.com/community/tutorials/decision-trees-R
 - Introduction to Data Science (Case Study Moneyball): https://rafalab.github.io/dsbook/linear-models.html#case-study-moneyball
+=======
+>>>>>>> bf59d52d90d6b4ab9b840f4b7fa1cd132debf1fb
