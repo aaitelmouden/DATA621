@@ -192,9 +192,6 @@ COR %>%
 ```
 Before entirely excluding variables, it is a good idea to transform the data by fixing missing values or combining variables and reexamine the viability of those variables for predicting wins.
 
-------------------------------
-Comment : We need to decide if we can keep below graph 
-------------------------------
 
 ```{r}
 
@@ -236,16 +233,12 @@ Also Examining significant correlations among the independent variables, we see 
 
 ## Data Preparation
 
-Missing values need to be handled before building models.They can be handled by either dropping the records, dropping the entire variable, or imputation. In this case, it was determined that Batters hit by pitch variableshould be dropped altogether prior to model building because it has too many missing values to properly impute.All other variables with missing values will be considered for the model because a majority of the records are not missing.These variables will be imputed.
-
----------------------------------------------
-Comment : We need to decide how to handle the missing values: Remove it or input the mean values  
---------------------------------------------------
+Missing values need to be handled before building models.They can be handled by either dropping the records, dropping the entire variable, or imputation. In this case, it was determined that Batters hit by pitch variable should be dropped altogether prior to model building because it has too many missing values to properly impute.All other variables with missing values will be considered for the model because a majority of the records are not missing.These variables will be imputed.
 
 First we will remove Batting_HBP (Hit by Pitch) which has 92% missing values.
 
 ```{r}
-train_data <- train_data[-10]
+train_data <- train_data[-11]
 ```
 
 We will look at the patterns and intersections of missingness among the variables, using the naniar package. We can see that only 22 of the observations have all 5 variables missing, we will just delete these cases. The pattern suggests that the variables are Missing at Random (MAR)
@@ -262,34 +255,237 @@ gg_miss_case(train_data)+
 ```
 By looking at the patterns and intersections of missing data among the variables. We can see that 5 variables have missing values, Team_BATTING has the most missing values so we are completely removing these observations. Overall, the pattern suggests that the variables are Missing at Random (MAR).
 
+When it comes to fixing missing values,there are several methods at our disposal. The first technique is to fill the missing values with the mean values of each variable. We'll use the Hmisc R Package to fill the missing data with the mean,  most of the time, mean imputation will lead to good results. The same procedure will be used for the other variables with missing values in Model 2 but by using the Median instead of the mean
 
+The second technique for imputing missing values is to use a decision tree. This is slightly more involved, but will likely give the better results. A decision tree will be created for each variable with missing values. In mean imputation, a fixed value is used for missing values of an entire variable whereas in decision tree imputation, a value is used based on certain conditions.
 
 ## Build Models
 
 ### MODEL 1: MEAN FULL MODEL
 
-Thisis a full model containing all the variables with the meanused for missing values. This is a good starting model to determine how well each variable helps predict wins. The mean is generally an adequate guess for missing values. In this model, no selection technique is used. All variables are manually included.
+This is a full model containing all the variables with the meanused for missing values. This is a good starting model to determine how well each variable helps predict wins. The mean is generally an adequate guess for missing values. In this model, no selection technique is used. All variables are manually included.
 
-### MODEL 2
+To the that we used the Hmisc R package to imputes missing value using user defined statistical method (mean in our case)
 
-## Select Model
 
-Here we can either select variable that seem correlated for this simple direct model or create mean model using the stepwise selection technique, or median with stepwise
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(Hmisc)
+# Filling missing values with Mean using the impute package
+train_model1 <- train_data
+train_model1$TEAM_BATTING_SO[is.na(train_model1$TEAM_BATTING_SO)] = mean(train_model1$TEAM_BATTING_SO, na.rm=TRUE)
+train_model1$TEAM_BASERUN_SB[is.na(train_model1$TEAM_BASERUN_SB)] = mean(train_model1$TEAM_BASERUN_SB, na.rm=TRUE)
+train_model1$TEAM_BASERUN_CS[is.na(train_model1$TEAM_BASERUN_CS)] = mean(train_model1$TEAM_BASERUN_CS, na.rm=TRUE)
+train_model1$TEAM_PITCHING_SO[is.na(train_model1$TEAM_PITCHING_SO)] = mean(train_model1$TEAM_PITCHING_SO, na.rm=TRUE)
+train_model1$TEAM_FIELDING_DP[is.na(train_model1$TEAM_FIELDING_DP)] = mean(train_model1$TEAM_FIELDING_DP, na.rm=TRUE)
+```
 
-### MODEL 3
 
-Log Transformation 
+```{r}
+model1 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model1)
+summary(model1)
+```
+Mean Square Error (MSE)
 
-### MODEL 4 
+```{r}
+mean(model1$residuals^2)
+```
+```{r}
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(model1)
+```
 
-BoxCox Transformation
 
-### MODEL 5 
+The overall p-value for Model 1is less than 0.0001,which indicates a significant model in predicting wins. The Adjusted R-Squared and Mean Square Error (MSE) will be the metrics used to determine the best model.A higher Adjusted R-Squared is better and a lower MSE is better.In this case, the Adjusted R-Squared is 0.3814 and MSE is 168.91, which will be the current benchmark. 
 
-kNN Imputation
+**The resulting equation for Model 1 is :**
+
+\begin{center}
+
+WINS =+ 25.06831 \\
+      +0.0473146*Base Hits by batters \\
+      -0.0209806*Doubles by batters \\
+      +0.0692224*Triples by batters \\
+      +0.0680963*Homeruns by batters \\
+      +0.0108690*Walks by batters \\
+      -0.0081244*Strikeouts by batters \\
+      +0.0299345*Stolen bases \\
+      -0.01173*Caught stealing \\
+      -0.00073149*Hits allowed \\
+      +0.01481*Homeruns allowed \\
+      +0.00008066*Walks allowed \\
+      +0.0026600*Strikeouts by pitchers \\
+      -0.02118*Errors \\
+      -0.1208451*Double plays \\
+\end{center}
+
+Most of Model 1 makes senseas positive measures of success like Base Hits, Triples, Homeruns, Walks by batters, and Stolen bases are positive coefficients in the equation while negative measures of success like Strikeouts by batters, Caught stealing, Hits allowed, and Errors are negative coefficients in the equation.All these values make intuitive sense.On the other hand, Doubles and Double plays are shown as negative coefficients when they should have a positive impact on wins. Also, Homeruns allowed and Walks allowed are shown as positive coefficients when they should have negative impact on wins.These values are counter intuitive.The counter intuitive parts of the model may need to be further investigated if this model were to be chosen for deployment.However, for now, the model will be kept as a benchmark despite certain measures not making sense.
+
+### MODEL 2: MEDIAN WITH STEPWISE
+
+Earlier in the exploration of the data, the analysis revealed the possibility of outliers present in the data. Because the mean is highly influenced by outliers, this model attempts to remedy that by using the median to impute missing values.Model 2 is a significant model based on the p-value of less than 0.0001. The Adjusted R-Squared is 0.3147 and MSE is 169.799.
+
+```{r}
+train_model2 <- train_data
+# Filling missing values with Mean using the impute package
+train_model2$TEAM_BATTING_SO[is.na(train_model2$TEAM_BATTING_SO)] = median(train_model2$TEAM_BATTING_SO, na.rm=TRUE)
+train_model2$TEAM_BASERUN_SB[is.na(train_model2$TEAM_BASERUN_SB)] = median(train_model2$TEAM_BASERUN_SB, na.rm=TRUE)
+train_model2$TEAM_BASERUN_CS[is.na(train_model2$TEAM_BASERUN_CS)] = median(train_model2$TEAM_BASERUN_CS, na.rm=TRUE)
+train_model2$TEAM_PITCHING_SO[is.na(train_model2$TEAM_PITCHING_SO)] = median(train_model2$TEAM_PITCHING_SO, na.rm=TRUE)
+train_model2$TEAM_FIELDING_DP[is.na(train_model2$TEAM_FIELDING_DP)] = median(train_model2$TEAM_FIELDING_DP, na.rm=TRUE)
+```
+
+```{r}
+model2 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model2)
+summary(model1)
+```
+```{r}
+mean(model2$residuals^2)
+```
+```{r}
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(model2)
+```
+
+**The resulting equation for Model 2 is :**
+
+WINS =+ 25.0602 \\
+      +0.04824*Base Hits by batters \\
+      -0.02006*Doubles by batters \\
+      +0.06047*Triples by batters \\
+      +0.05299*Homeruns by batters \\
+      +0.01042*Walks by batters \\
+      -0.009349*Strikeouts by batters \\
+      +0.02949*Stolen bases \\
+      -0.01188*Caught stealing \\
+      -0.0007342*Hits allowed \\
+      +0.01480*Homeruns allowed \\
+      +0.00008891*Walks allowed \\
+      +0.002843*Strikeouts by pitchers \\
+      -0.02112*Errors \\
+      -0.1210*Double plays \\
+\end{center}
+
+
+
+### MODEL 3: Decision Tree
+
+Decision trees are extremely useful in fixing missing values. In Model 3, a decision tree will be used. The missing values will be filled in based on conditions of other variables. Decision trees can provide more accurate guesses which can produce more accurate models.Stepwise variable selection will be used again because of its ability to add and remove variables at each iteration.
+
+```{r}
+library(rpart)
+train_model3 <-train_data[,-c(1)]
+names(train_model3)
+```
+create a decision tree for each variable with missing values. cross validate to see if we can prune the tree to make simpler# TEAM_BATTING_SO, TEAM_BASERUN_CS, TEAM_BASERUN_SB, TEAM_PITCHING_SO, TEAM_FIELDING_DP
+
+```{r}
+batting_so_tree <-rpart(TEAM_BATTING_SO~.,data=train_model3)
+plot(batting_so_tree)
+text(batting_so_tree)
+printcp(batting_so_tree)
+plotcp(batting_so_tree) # keep all 8 branches
+```
+
+```{r}
+baserun_cs <-rpart(TEAM_BASERUN_CS~.,data=train_model3)
+plot(baserun_cs)
+text(baserun_cs)
+printcp(baserun_cs)
+plotcp(baserun_cs) # keep all 10 branches
+```
+
+```{r}
+baserun_sb <-rpart(TEAM_BASERUN_SB~.,data=train_model3)
+plot(baserun_sb)
+text(baserun_sb)
+printcp(baserun_sb)
+plotcp(baserun_sb) # keep all 10 branches (maybe 8)
+```
+
+```{r}
+pitching_so <-rpart(TEAM_PITCHING_SO~.,data=train_model3)
+plot(pitching_so)
+text(pitching_so)
+printcp(pitching_so)
+plotcp(pitching_so) # keep all 6 branches (maybe 5)
+```
+
+```{r}
+fielding_dp <-rpart(TEAM_FIELDING_DP~.,data=train_model3)
+plot(fielding_dp)
+text(fielding_dp)
+printcp(fielding_dp)
+plotcp(fielding_dp) # keep all 6 branches
+```
+Behind the scenes rpart is automatically applying a range of cost complexity (α values to prune the tree. To compare the error for each α value, rpart performs a 10-fold cross validation so that the error associated with a given α value is computed on the hold-out validation data. 
+
+The complexity parameter (cp) in rpart is the minimum improvement in the model needed at each node. It’s based on the cost complexity of the model defined as
+
+![tree](./cp.png)
+
+The cp value is a stopping parameter. It helps speed up the search for splits because it can identify splits that don’t meet this criteria and prune them before going too far.
+
+
+Now lets run the model 
+
+```{r}
+model3 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model3)
+summary(model3)
+```
+
 
 ## Select A Model
 
 ## Appendix 
 
 ## References
+
+- Dealing with Missing Data using R : https://medium.com/coinmonks/dealing-with-missing-data-using-r-3ae428da2d17
+- Decision Tree : http://www.learnbymarketing.com/tutorials/rpart-decision-trees-in-r/
+- Decision Tree : https://www.datacamp.com/community/tutorials/decision-trees-R
+- Introduction to Data Science (Case Study Moneyball): https://rafalab.github.io/dsbook/linear-models.html#case-study-moneyball
