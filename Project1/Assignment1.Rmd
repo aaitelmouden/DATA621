@@ -8,13 +8,29 @@ output:
   
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+
 library(corrplot)
 library(tidyverse)
 library(Hmisc)
 library(PerformanceAnalytics)
-library(corrplot)
+library(mice)
+library(gt)
+library(DMwR)
+library(caret)
+library(bnstruct)
+library(VIM)
+library(corrr)
+library(gtsummary)
+library(kableExtra)
+library(naniar)
+library(rpart)
+
 ```
 
 
@@ -23,9 +39,8 @@ library(corrplot)
 To see how regression will help us evaluate baseball team performance, this project is designed to explore whether a teams success in any given season can be predicted or explained by any number of statistics in that season. Our goal is to build a multiple linear regression model on the training data to predict the number of wins for the team. we will explore, analyze and model a historical baseball data set containing approximately 2200 records. 
 Each record represents a professional baseball team from the years 1871 to 2006 inclusive, and the data include the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season.
 
-While correlation does not equal causation it is suggested that a focus on some of the variables such as a focus on either single hits or triple or more hits to the exclusion of doubles might be worth pursuing. Also the data suggests that a focus on home runs allowed may not be worth giving up a number of more normal hits.
+While correlation does not imply causation, it is suggested that a focus on some of the variables such as single hits or triple or more hits to the exclusion of doubles might be worth pursuing. Also the data suggests that a focus on home runs allowed may not be worth giving up a number of more normal hits.
 
-.....To add more here....
 
 ## Introduction
 
@@ -62,11 +77,11 @@ The game statistics that will be used in this study are the following:
 | TEAM_PITCHING_SO | Strikeouts by pitchers                 | Positive Impact on Wins |
 
 
-The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows.  Based on initial observations, the data contains 2276 teams with a variety of baseball performance statistics. 
+The initial steps are to download the data and take a quick glimpse of the columns, their data types, number of columns, and rows.  Based on initial observations, the data contains 2276 teams with a variety of baseball performance statistics.
 
-```{r echo=FALSE}
+```{r include=FALSE}
+
 #Import data 
-# I replaced the variable name data with train_data since we'll have a test data
 
 train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
 glimpse(train_data)
@@ -81,25 +96,21 @@ Figure 1 :  Summary Statistics
 \end{center}
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(tidyverse)
-library(gtsummary)
+
+# Summary table 
+
 wins <- train_data %>% select(TARGET_WINS, TEAM_BATTING_H, TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, TEAM_BATTING_BB, TEAM_BATTING_HBP, TEAM_BATTING_SO, TEAM_BASERUN_SB, TEAM_BASERUN_CS, TEAM_FIELDING_E, TEAM_FIELDING_DP, TEAM_PITCHING_BB, TEAM_PITCHING_SO, TEAM_FIELDING_E, TEAM_FIELDING_DP)
 table1 <- tbl_summary(wins,
           statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
 table1
 ```
 
-In recent years in baseball, slugging percentage has become a popular statistic in the analytics department of many teams. The name is a misnomer, since it is not actually a percentage, but rather a measure of bases produced per at bat, and is calculated by total bases (i.e. 1 for a single, 4 for a HR) divided by total at-bats. However, since this dataset doesn't contain information on at-bats, we will use a modified version of slugging percentage that measures average bases produced per hit.
-
-```{r}
-singles <- train_data$TEAM_BATTING_H - (train_data$TEAM_BATTING_2B + train_data$TEAM_BATTING_3B + train_data$TEAM_BATTING_HR)
-
-train_data$TEAM_BATTING_SLG <- ((train_data$TEAM_BATTING_HR *4)+ (train_data$TEAM_BATTING_3B*3) + (train_data$TEAM_BATTING_2B*2)+ singles)/train_data$TEAM_BATTING_H
-```
 
 \begin{center}
 Mean (SD) Median Minimum Maximum 
 \end{center}
+
+
 
 By examining the target wins variable in detail, there is a clear guideline of how many wins each team should approximately win. Most teams will likely win the average number of games (81), but there will be some variability from the average with some teams winning more or less than 81 games.
 
@@ -110,6 +121,7 @@ A quick look at Figure 2 will reveal the distribution of the target wins. The di
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 # Layout to split the screen
 layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
 
@@ -118,9 +130,11 @@ par(mar=c(0, 3.1, 1.1, 2.1))
 boxplot(train_data$TARGET_WINS ,main="Figure 2 : Distribution and Probability Plot for TARGET_WINS",cex.main=1, horizontal=TRUE , ylim=c(0,150), xaxt="n" , col=rgb(0.8,0.8,0,0.5) , frame=F)
 par(mar=c(4, 3.1, 1.1, 2.1))
 hist(train_data$TARGET_WINS , breaks=40 , col=rgb(0.2,0.8,0.5,0.5) , border=F , main="" , xlab="TARGET WINS", xlim=c(0,150))
+
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 qqnorm(train_data$TARGET_WINS, pch = 1, frame = FALSE)
 qqline(train_data$TARGET_WINS, col = "steelblue", lwd = 2)
 ```
@@ -130,7 +144,7 @@ Now in order to build our models properly It's worth exploring for other columns
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(gt)
+
 max_obs <- 2276
 batting_so_na <- ((102/max_obs) * 100)
 baserun_sb_na <- (131/max_obs) * 100
@@ -149,31 +163,22 @@ gt_tbl
 ```
 
 
-```{r}
-
-
-#train_data[-c(1)] %>%
-#  gather() %>% 
-#  ggplot(aes(value)) +
-#    facet_wrap(~ key, scales = "free") +
-#    geom_histogram(binwidth=1)
-
-```
-
-
-
 
 ### Outliers
 
 The following diagram shows the outliers for all the variables, both dependent and independent.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
   geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
   coord_cartesian(ylim = c(0, 1000)) +
   theme_classic()+
   theme(axis.text.x=element_text(angle=45, hjust=1)) 
 ```
+
+
+
 As we can see from the graph only 4 of the 16 variables are normally or close to normally distributed.
 the other 12 variables have a significant skew. The response variable Target_wins seems to be normally distributed. Batting_Hr, Batting_SO and Pitching_HR are bi-modal. 10 of the 16 variables have a minimum value of 0. This is not a major concern as the total % of 0 in each column is less than 1%. The variables Batting_BB, Batting_CS, Baserun_SB, Pitching_BB and Fielding_E have a significant number of outliers.
 
@@ -182,8 +187,6 @@ the other 12 variables have a significant skew. The response variable Target_win
 It is possible that not all variables will need to be used in creating an accurate model. In Figure 4, a correlation value is computed for each variable against target wins. Some variables are highly correlated with target wins, while other variables are not. For example, Base Hits by batters has a value of 0.38877 which is high while Caught stealing is barely correlated with target wins with a value of 0.0224.There is also a column for p-values which indicates whether the correlations are significant. We can use a decision rule of 95% meaning any variable with a p-value of less than 0.05 is significant. It appears that Strikeouts by batters (TEAM_BATTING_SO),Caught stealing(TEAM_BASERUN_CS), Batters hit by pitch (TEAM_BATTING_HBP), and Double plays (TEAM_FIELDING_DP)do not meet our decision rule and could be excluded from use.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(corrr)
-library(ggplot2)
 
 COR <- train_data %>% 
   correlate() %>% 
@@ -202,18 +205,20 @@ COR %>%
 Before entirely excluding variables, it is a good idea to transform the data by fixing missing values or combining variables and reexamine the viability of those variables for predicting wins.
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 #pairwise.complete.obs ignores NA values and computes correlation on complete observations
 #we might have to run these corrplots again after we handle the NA values
 chart.Correlation(train_data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
 ```
 
-```{r}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 data.corr <- cor(train_data[-c(1)], use="pairwise.complete.obs")
 
 corrplot(data.corr, type = "lower", method="square")
 ```
+
 
 ```{r, include = FALSE}
 flattenCorrMatrix <- function(cormat, pmat) {
@@ -227,7 +232,8 @@ flattenCorrMatrix <- function(cormat, pmat) {
 }
 ```
 
-```{r}
+
+```{r include=FALSE}
 #eliminate INDEX from data frame
 data_no_index <- train_data[-c(1)]
 
@@ -246,15 +252,15 @@ Missing values need to be handled before building models.They can be handled by 
 
 First we will remove Batting_HBP (Hit by Pitch) which has 92% missing values.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 train_data <- train_data[-11]
 ```
 
 We will look at the patterns and intersections of missingness among the variables, using the naniar package. We can see that only 22 of the observations have all 5 variables missing, we will just delete these cases. The pattern suggests that the variables are Missing at Random (MAR)
 
-```{r}
-# Here is an example how to use the package https://naniar.njtierney.com/articles/naniar-visualisation.html
-library(naniar)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
 par(mfrow=c(1,2))
 gg_miss_upset(train_data, 
               nsets = 5,
@@ -289,7 +295,7 @@ train_model1$TEAM_PITCHING_SO[is.na(train_model1$TEAM_PITCHING_SO)] = mean(train
 ```
 
 
-```{r}
+```{r include=FALSE}
 model1 <- lm(TARGET_WINS ~ 
                TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
                TEAM_BATTING_2B +  # Doubles by batters (2B) 
@@ -306,16 +312,21 @@ model1 <- lm(TARGET_WINS ~
                TEAM_FIELDING_E +  # Errors
                TEAM_FIELDING_DP,  # Double Plays
              data=train_model1)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 summary(model1)
 ```
-Mean Square Error (MSE)
 
-```{r}
+
+```{r include=FALSE}
 mean(model1$residuals^2)
 ```
 
 
-```{r}
+```{r include=FALSE}
 layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
 plot(model1)
 ```
@@ -344,13 +355,16 @@ WINS =+ 25.06831 \\
       -0.1208451*Double plays \\
 \end{center}
 
+
 Most of Model 1 makes senseas positive measures of success like Base Hits, Triples, Homeruns, Walks by batters, and Stolen bases are positive coefficients in the equation while negative measures of success like Strikeouts by batters, Caught stealing, Hits allowed, and Errors are negative coefficients in the equation.All these values make intuitive sense.On the other hand, Doubles and Double plays are shown as negative coefficients when they should have a positive impact on wins. Also, Homeruns allowed and Walks allowed are shown as positive coefficients when they should have negative impact on wins.These values are counter intuitive.The counter intuitive parts of the model may need to be further investigated if this model were to be chosen for deployment.However, for now, the model will be kept as a benchmark despite certain measures not making sense.
+
 
 ### MODEL 2: MEDIAN WITH STEPWISE
 
 Earlier in the exploration of the data, the analysis revealed the possibility of outliers present in the data. Because the mean is highly influenced by outliers, this model attempts to remedy that by using the median to impute missing values.Model 2 is a significant model based on the p-value of less than 0.0001. The Adjusted R-Squared is 0.3147 and MSE is 169.799.
 
-```{r}
+```{r include = FALSE}
+
 train_model2 <- train_data
 # Filling missing values with Mean using the impute package
 train_model2$TEAM_BATTING_SO[is.na(train_model2$TEAM_BATTING_SO)] = median(train_model2$TEAM_BATTING_SO, na.rm=TRUE)
@@ -360,7 +374,7 @@ train_model2$TEAM_PITCHING_SO[is.na(train_model2$TEAM_PITCHING_SO)] = median(tra
 #train_model2$TEAM_FIELDING_DP[is.na(train_model2$TEAM_FIELDING_DP)] = median(train_model2$TEAM_FIELDING_DP, na.rm=TRUE)
 ```
 
-```{r}
+```{r include= FALSE}
 model2 <- lm(TARGET_WINS ~ 
                TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
                TEAM_BATTING_2B +  # Doubles by batters (2B) 
@@ -377,12 +391,24 @@ model2 <- lm(TARGET_WINS ~
                TEAM_FIELDING_E +  # Errors
                TEAM_FIELDING_DP,  # Double Plays
              data=train_model2)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 summary(model1)
 ```
-```{r}
+
+
+
+```{r include= FALSE}
+
 mean(model2$residuals^2)
 ```
-```{r}
+ 
+ 
+```{r include=FALSE}
+
 layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
 plot(model2)
 ```
@@ -408,73 +434,469 @@ WINS =+ 25.0602 \\
 \end{center}
 
 
+### MODEL 3: knn Imputation
+
+```{r include=FALSE}
+
+train_data_impute <- select(train_data, -c(INDEX))
+
+```
+
+```{r, include=FALSE}
+
+#using default values
+knn_data <- knnImputation(train_data_impute)
+
+summary(knn_data)
+```
+
+Building the stepwise regression model with knn imputed values
+
+```{r include=FALSE}
+train.control <- trainControl(method ='cv', number=10)
+
+step.model <- train(TARGET_WINS ~., data = knn_data,
+                    method = "leapSeq",
+                    tuneGrid = data.frame(nvmax = 2:13),
+                    trControl = train.control
+                    )
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+step.model$results
+
+```
+
+
+```{r include=FALSE}
+
+step.model$bestTune
+```
+
+
+```{r include=FALSE}
+
+summary(step.model$finalModel)
+```
+
+
+```{r include=FALSE}
+
+coef(step.model$finalModel, 6)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+knn_lm <- lm(formula = TARGET_WINS ~ TEAM_BATTING_H + TEAM_BATTING_SO + TEAM_BASERUN_SB + TEAM_PITCHING_HR + TEAM_FIELDING_E + TEAM_FIELDING_DP, data = knn_data)
+
+summary(knn_lm)
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+hist(knn_lm$residuals, xlab = "Residuals", ylab = "", breaks=100)
+qqnorm(knn_lm$residuals)
+qqline(knn_lm$residuals)
+
+plot(fitted(knn_lm), residuals(knn_lm))
+abline(h=0, lty = 2)
+```
+
+
+
+Now lets run the model... 
+
+
+## Select A Model
+
+
+Let compare all the models based on with different measures stated in the table below:
+
+```{r model, echo=FALSE, message=FALSE, warning=FALSE}
+
+meas <- c('r_squared', 'adj_rsquared', 'rse', 'f_stat' )
+model1 <- c(0.3858, 0.3814, 10.96, 88.61)
+model2 <- c(0.3858, 0.3814, 10.96, 88.61)
+model3 <- c(0.3067, 0.3049, 13.13, 167.3)
+
+
+select_model <- data.frame(meas, model1, model2, model3)
+colnames(select_model) <- c("Measures", "Model 1", "Model 2", "Model 3")
+
+kable(select_model)
+
+
+
+```
+
+
+
+
+## Appendix 
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+# 0.  Librairies
+
+library(corrplot)
+library(tidyverse)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(corrplot)
+library(mice)
+library(gt)
+library(DMwR)
+library(caret)
+library(bnstruct)
+library(VIM)
+library(corrr)
+library(tidyverse)
+library(gtsummary)
+library(kableExtra)
+
+
+```
+
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+# 1. Data Exploration
+
+## Import data 
+
+train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
+glimpse(train_data)
+
+
+## Summary table 
+
+wins <- train_data %>% select(TARGET_WINS, TEAM_BATTING_H, TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, TEAM_BATTING_BB, TEAM_BATTING_HBP, TEAM_BATTING_SO, TEAM_BASERUN_SB, TEAM_BASERUN_CS, TEAM_FIELDING_E, TEAM_FIELDING_DP, TEAM_PITCHING_BB, TEAM_PITCHING_SO, TEAM_FIELDING_E, TEAM_FIELDING_DP)
+table1 <- tbl_summary(wins,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
+
+
+## Create more variables
+
+singles <- train_data$TEAM_BATTING_H - (train_data$TEAM_BATTING_2B + train_data$TEAM_BATTING_3B + train_data$TEAM_BATTING_HR)
+
+train_data$TEAM_BATTING_SLG <- ((train_data$TEAM_BATTING_HR *4)+ (train_data$TEAM_BATTING_3B*3) + (train_data$TEAM_BATTING_2B*2)+ singles)/train_data$TEAM_BATTING_H
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+## Plots
+
+### Layout to split the screen
+layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
+
+####  Draw the boxplot and the histogram 
+par(mar=c(0, 3.1, 1.1, 2.1))
+boxplot(train_data$TARGET_WINS ,main="Figure 2 : Distribution and Probability Plot for TARGET_WINS",cex.main=1, horizontal=TRUE , ylim=c(0,150), xaxt="n" , col=rgb(0.8,0.8,0,0.5) , frame=F)
+par(mar=c(4, 3.1, 1.1, 2.1))
+hist(train_data$TARGET_WINS , breaks=40 , col=rgb(0.2,0.8,0.5,0.5) , border=F , main="" , xlab="TARGET WINS", xlim=c(0,150))
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+### qq plots
+
+qqnorm(train_data$TARGET_WINS, pch = 1, frame = FALSE)
+qqline(train_data$TARGET_WINS, col = "steelblue", lwd = 2)
+
+
+max_obs <- 2276
+batting_so_na <- ((102/max_obs) * 100)
+baserun_sb_na <- (131/max_obs) * 100
+baserun_cs_na <- (772/max_obs) * 100
+batting_hbp_na <- (2085/max_obs) * 100
+pitching_so_na <- (102/max_obs) * 100
+fielding_dp_na <- (286/max_obs) * 100
+
+df_percent_na <- data.frame(Columns_w_NA = c("team_batting_so", "team_baserun_sb", "team_baserun_cs", "team_batting_hbp", "team_pitching_so", "team_fielding_dp"), Percent_NA = c(batting_so_na, baserun_sb_na, baserun_cs_na, batting_hbp_na, pitching_so_na, fielding_dp_na))
+
+
+### the largest islands in the world
+
+gt_tbl <- gt(data = df_percent_na, )
+
+
+### Show the gt Table
+
+gt_tbl
+
+
+```
+
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+### Outlliers
+
+ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
+  geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
+  coord_cartesian(ylim = c(0, 1000)) +
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+
+
+### Correlation
+
+COR <- train_data %>% 
+  correlate() %>% 
+  focus(TARGET_WINS)
+gt(COR)
+
+COR %>% 
+  mutate(rowname = factor(term, levels = term[order(TARGET_WINS)])) %>%  # Order by correlation strength
+  ggplot(aes(x = rowname, y = TARGET_WINS)) +
+    geom_bar(stat = "identity") +
+    ylab("Correlation with TARGET WINS") +
+    xlab("Variables") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ ggtitle("Figure 4: Correlation Against Target Win")
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+#### pairwise.complete.obs ignores NA values and computes correlation on complete observations
+#### we might have to run these corrplots again after we handle the NA values
+
+chart.Correlation(train_data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
+
+data.corr <- cor(train_data[-c(1)], use="pairwise.complete.obs")
+
+corrplot(data.corr, type = "lower", method="square")
+
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+#### Eliminate INDEX from data frame
+data_no_index <- train_data[-c(1)]
+
+cor_matrix <- rcorr(as.matrix(data_no_index))
+
+flattenCorrMatrix(cor_matrix$r, cor_matrix$P)
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+#. 2 Data preparation 
+
+train_data <- train_data[-11]
+
+
+par(mfrow=c(1,2))
+gg_miss_upset(train_data, 
+              nsets = 5,
+              nintersects = NA)
+gg_miss_case(train_data)+
+  theme_classic()
+
+
+par(mfrow=c(1,2))
+gg_miss_upset(train_data, 
+              nsets = 5,
+              nintersects = NA)
+gg_miss_case(train_data)+
+  theme_classic()
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+# 3. Build models
+
+### MODEL 1: MEAN FULL MODEL
+
+### Filling missing values with Mean using the impute package
+
+train_model1 <- train_data
+train_model1$TEAM_BATTING_SO[is.na(train_model1$TEAM_BATTING_SO)] = mean(train_model1$TEAM_BATTING_SO, na.rm=TRUE)
+train_model1$TEAM_BASERUN_SB[is.na(train_model1$TEAM_BASERUN_SB)] = mean(train_model1$TEAM_BASERUN_SB, na.rm=TRUE)
+train_model1$TEAM_BASERUN_CS[is.na(train_model1$TEAM_BASERUN_CS)] = mean(train_model1$TEAM_BASERUN_CS, na.rm=TRUE)
+train_model1$TEAM_PITCHING_SO[is.na(train_model1$TEAM_PITCHING_SO)] = mean(train_model1$TEAM_PITCHING_SO, na.rm=TRUE)
+
+model1 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model1)
+summary(model1)
+
+### Mean Square Error (MSE)
+
+mean(model1$residuals^2)
+
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(model1)
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+### MODEL 2: MEDIAN WITH STEPWISE
+
+train_model2 <- train_data
+
+#### Filling missing values with Mean using the impute package
+
+train_model2$TEAM_BATTING_SO[is.na(train_model2$TEAM_BATTING_SO)] = median(train_model2$TEAM_BATTING_SO, na.rm=TRUE)
+train_model2$TEAM_BASERUN_SB[is.na(train_model2$TEAM_BASERUN_SB)] = median(train_model2$TEAM_BASERUN_SB, na.rm=TRUE)
+train_model2$TEAM_BASERUN_CS[is.na(train_model2$TEAM_BASERUN_CS)] = median(train_model2$TEAM_BASERUN_CS, na.rm=TRUE)
+train_model2$TEAM_PITCHING_SO[is.na(train_model2$TEAM_PITCHING_SO)] = median(train_model2$TEAM_PITCHING_SO, na.rm=TRUE)
+
+
+model2 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model2)
+summary(model1)
+
+mean(model2$residuals^2)
+
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(model2)
+
+```
+
+
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
 
 ### MODEL 3: Decision Tree
 
-Decision trees are extremely useful in fixing missing values. In Model 3, a decision tree will be used. The missing values will be filled in based on conditions of other variables. Decision trees can provide more accurate guesses which can produce more accurate models.Stepwise variable selection will be used again because of its ability to add and remove variables at each iteration.
-
-```{r}
-library(rpart)
 train_model3 <-train_data[,-c(1)]
 names(train_model3)
-```
-create a decision tree for each variable with missing values. cross validate to see if we can prune the tree to make simpler# TEAM_BATTING_SO, TEAM_BASERUN_CS, TEAM_BASERUN_SB, TEAM_PITCHING_SO, TEAM_FIELDING_DP
 
-```{r}
 batting_so_tree <-rpart(TEAM_BATTING_SO~.,data=train_model3)
 plot(batting_so_tree)
 text(batting_so_tree)
 printcp(batting_so_tree)
 plotcp(batting_so_tree) # keep all 8 branches
-```
 
-```{r}
+
 baserun_cs <-rpart(TEAM_BASERUN_CS~.,data=train_model3)
 plot(baserun_cs)
 text(baserun_cs)
 printcp(baserun_cs)
 plotcp(baserun_cs) # keep all 10 branches
-```
 
-```{r}
+
 baserun_sb <-rpart(TEAM_BASERUN_SB~.,data=train_model3)
 plot(baserun_sb)
 text(baserun_sb)
 printcp(baserun_sb)
 plotcp(baserun_sb) # keep all 10 branches (maybe 8)
-```
 
-```{r}
 pitching_so <-rpart(TEAM_PITCHING_SO~.,data=train_model3)
 plot(pitching_so)
 text(pitching_so)
 printcp(pitching_so)
 plotcp(pitching_so) # keep all 6 branches (maybe 5)
-```
 
-```{r}
+
 fielding_dp <-rpart(TEAM_FIELDING_DP~.,data=train_model3)
 plot(fielding_dp)
 text(fielding_dp)
 printcp(fielding_dp)
 plotcp(fielding_dp) # keep all 6 branches
+
 ```
-Behind the scenes rpart is automatically applying a range of cost complexity (α values to prune the tree. To compare the error for each α value, rpart performs a 10-fold cross validation so that the error associated with a given α value is computed on the hold-out validation data. 
-
-The complexity parameter (cp) in rpart is the minimum improvement in the model needed at each node. It’s based on the cost complexity of the model defined as
 
 
-The cp value is a stopping parameter. It helps speed up the search for splits because it can identify splits that don’t meet this criteria and prune them before going too far.
+```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+### MODEL 4: kNN Imputation
+
+train_data_impute <- select(train_data, -c(INDEX))
 
 
-Now lets run the model 
+#### using default values
+
+knn_data <- knnImputation(train_data_impute)
+
+summary(knn_data)
+
+train.control <- trainControl(method ='cv', number=10)
+
+step.model <- train(TARGET_WINS ~., data = knn_data,
+                    method = "leapSeq",
+                    tuneGrid = data.frame(nvmax = 2:13),
+                    trControl = train.control
+                    )
+
+step.model$results
+
+step.model$bestTune
+
+summary(step.model$finalModel)
+
+coef(step.model$finalModel, 6)
+
+
+knn_lm <- lm(formula = TARGET_WINS ~ TEAM_BATTING_H + TEAM_BATTING_SO + TEAM_BASERUN_SB + TEAM_PITCHING_HR + TEAM_FIELDING_E + TEAM_FIELDING_DP, data = knn_data)
+
+summary(knn_lm)
+
+
+hist(knn_lm$residuals, xlab = "Residuals", ylab = "", breaks=100)
+qqnorm(knn_lm$residuals)
+qqline(knn_lm$residuals)
+
+plot(fitted(knn_lm), residuals(knn_lm))
+abline(h=0, lty = 2)
+```
 
 
 
 
-## Select A Model
 
-## Appendix 
+
+
 
 ## References
 <<<<<<< HEAD
