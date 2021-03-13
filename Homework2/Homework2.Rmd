@@ -4,6 +4,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(RCurl)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -13,10 +14,17 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r}
+class_df <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework2/classification-output-data.csv")
+
+exp_val <- class_df$class
+pred_val <- class_df$scored.class
 ```
 
+
+```{r}
+table_class <- table(exp_val, pred_val)
+```
 ## Including Plots
 
 You can also embed plots, for example:
