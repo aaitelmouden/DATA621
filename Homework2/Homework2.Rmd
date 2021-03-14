@@ -24,6 +24,8 @@ pred_val <- class_df$scored.class
 
 ```{r}
 table_class <- table(exp_val, pred_val)
+colnames(table_class) <- c("False", "Positive")
+rownames(table_class) <- c("False", "Positive")
 ```
 ## Including Plots
 
