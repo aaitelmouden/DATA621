@@ -5,6 +5,7 @@ date: "2/12/2021"
 output:
   pdf_document: 
     latex_engine: xelatex
+    
   
 ---
 
@@ -396,7 +397,7 @@ model2 <- lm(TARGET_WINS ~
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-summary(model1)
+summary(model2)
 ```
 
 
@@ -514,14 +515,20 @@ Now lets run the model...
 ## Select A Model
 
 
-Let compare all the models based on with different measures stated in the table below:
+
+As mentioned earlier, the main decision criterionis the Adjusted R-Squared. 
+A higher Adjusted R-Squared is indicative of better performance.
+MSE is also used as a secondary criterion which measures the difference between actual and predicted values. 
+A lower MSE is better.Aside from these criteria, 
+the goal is also to have a highly interpretable model that makes sense.
 
 ```{r model, echo=FALSE, message=FALSE, warning=FALSE}
 
 meas <- c('r_squared', 'adj_rsquared', 'rse', 'f_stat' )
 model1 <- c(0.3858, 0.3814, 10.96, 88.61)
-model2 <- c(0.3858, 0.3814, 10.96, 88.61)
+model2 <- c(0.3816, 0.3772, 11, 87.05)
 model3 <- c(0.3067, 0.3049, 13.13, 167.3)
+
 
 
 select_model <- data.frame(meas, model1, model2, model3)
@@ -534,12 +541,93 @@ kable(select_model)
 ```
 
 
+Looking at the three models, we are going to use model 1, and the model is
+selected based on the criteria we had mentioned.
+
+### Prediction
+
+The test data should go to to the same cleaning process with the training data.
+
+After, we have cleaned the test dataset, here's how the result looks like on the table above
+which include the predicted values, and the prediction intervals.
+
+```{r include= FALSE}
+
+eval_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-evaluation-data.csv")
+
+```
+
+```{r include=FALSE}
+eval_data <- eval_data[, -c(1, 10)]
+
+```
+
+
+```{r include=FALSE}
+
+eval_model1<- eval_data
+eval_model1$TEAM_BATTING_SO[is.na(eval_model1$TEAM_BATTING_SO)] = mean(eval_model1$TEAM_BATTING_SO, na.rm=TRUE)
+eval_model1$TEAM_BASERUN_SB[is.na(eval_model1$TEAM_BASERUN_SB)] = mean(eval_model1$TEAM_BASERUN_SB, na.rm=TRUE)
+eval_model1$TEAM_BASERUN_CS[is.na(eval_model1$TEAM_BASERUN_CS)] = mean(eval_model1$TEAM_BASERUN_CS, na.rm=TRUE)
+eval_model1$TEAM_PITCHING_SO[is.na(eval_model1$TEAM_PITCHING_SO)] = mean(eval_model1$TEAM_PITCHING_SO, na.rm=TRUE)
+
+```
+
+
+```{r include=FALSE}
+
+model1 <- lm(TARGET_WINS ~ 
+               TEAM_BATTING_H +   # Base Hits by batters (1B,2B,3B,HR)
+               TEAM_BATTING_2B +  # Doubles by batters (2B) 
+               TEAM_BATTING_3B +  # Triples by batters (3B)
+               TEAM_BATTING_HR +  # Homeruns by batters (4B) 
+               TEAM_BATTING_BB +  # Walks by batters
+               TEAM_BATTING_SO +  # Strikeouts by batters 
+               TEAM_BASERUN_SB +  # Stolen bases
+               TEAM_BASERUN_CS +  # Caught stealing 
+               TEAM_PITCHING_H +  # Hits allowed
+               TEAM_PITCHING_HR + # Homeruns allowed
+               TEAM_PITCHING_BB + # Walks allowed
+               TEAM_PITCHING_SO + # Strikeouts by pitchers
+               TEAM_FIELDING_E +  # Errors
+               TEAM_FIELDING_DP,  # Double Plays
+             data=train_model1)
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+eval_model1 <- drop_na(eval_model1)
+predict1 <- predict(model1, newdata = eval_model1, interval="prediction")
+kable(predict1)
+
+
+```
+
+
+
+### Conclusion
+
+
+ 3 models were generated from baseball team data from 1871 to 2006 to predict number of wins.
+Prior to generating the models, the baseball data was analyzed to better understand 
+the relationship between variables. The chosen model was Model 1 which was created using mean....
+
+
 
 
 ## Appendix 
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+knitr::opts_chunk$set(cache =TRUE)
 
 # 0.  Librairies
 
@@ -564,7 +652,8 @@ library(kableExtra)
 
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 # 1. Data Exploration
 
@@ -591,7 +680,8 @@ train_data$TEAM_BATTING_SLG <- ((train_data$TEAM_BATTING_HR *4)+ (train_data$TEA
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 ## Plots
 
@@ -607,7 +697,8 @@ hist(train_data$TARGET_WINS , breaks=40 , col=rgb(0.2,0.8,0.5,0.5) , border=F , 
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 ### qq plots
 
@@ -640,7 +731,8 @@ gt_tbl
 
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 ### Outlliers
 
 ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
@@ -667,7 +759,8 @@ COR %>%
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 #### pairwise.complete.obs ignores NA values and computes correlation on complete observations
 #### we might have to run these corrplots again after we handle the NA values
@@ -697,7 +790,8 @@ flattenCorrMatrix(cor_matrix$r, cor_matrix$P)
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 #. 2 Data preparation 
 
@@ -722,7 +816,8 @@ gg_miss_case(train_data)+
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
+
 
 # 3. Build models
 
@@ -764,7 +859,7 @@ plot(model1)
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+```{r, eval =FALSE}
 
 ### MODEL 2: MEDIAN WITH STEPWISE
 
@@ -804,53 +899,11 @@ plot(model2)
 ```
 
 
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+
+```{r, eval =FALSE}
 
 
-### MODEL 3: Decision Tree
-
-train_model3 <-train_data[,-c(1)]
-names(train_model3)
-
-batting_so_tree <-rpart(TEAM_BATTING_SO~.,data=train_model3)
-plot(batting_so_tree)
-text(batting_so_tree)
-printcp(batting_so_tree)
-plotcp(batting_so_tree) # keep all 8 branches
-
-
-baserun_cs <-rpart(TEAM_BASERUN_CS~.,data=train_model3)
-plot(baserun_cs)
-text(baserun_cs)
-printcp(baserun_cs)
-plotcp(baserun_cs) # keep all 10 branches
-
-
-baserun_sb <-rpart(TEAM_BASERUN_SB~.,data=train_model3)
-plot(baserun_sb)
-text(baserun_sb)
-printcp(baserun_sb)
-plotcp(baserun_sb) # keep all 10 branches (maybe 8)
-
-pitching_so <-rpart(TEAM_PITCHING_SO~.,data=train_model3)
-plot(pitching_so)
-text(pitching_so)
-printcp(pitching_so)
-plotcp(pitching_so) # keep all 6 branches (maybe 5)
-
-
-fielding_dp <-rpart(TEAM_FIELDING_DP~.,data=train_model3)
-plot(fielding_dp)
-text(fielding_dp)
-printcp(fielding_dp)
-plotcp(fielding_dp) # keep all 6 branches
-
-```
-
-
-```{r, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
-
-### MODEL 4: kNN Imputation
+### MODEL 3: kNN Imputation
 
 train_data_impute <- select(train_data, -c(INDEX))
 
@@ -893,17 +946,12 @@ abline(h=0, lty = 2)
 
 
 
-
-
-
-
-
 ## References
 <<<<<<< HEAD
 
-- Dealing with Missing Data using R : https://medium.com/coinmonks/dealing-with-missing-data-using-r-3ae428da2d17
-- Decision Tree : http://www.learnbymarketing.com/tutorials/rpart-decision-trees-in-r/
-- Decision Tree : https://www.datacamp.com/community/tutorials/decision-trees-R
-- Introduction to Data Science (Case Study Moneyball): https://rafalab.github.io/dsbook/linear-models.html#case-study-moneyball
+ -Dealing with Missing Data using R : https://medium.com/coinmonks/dealing-with-missing-data-using-r-3ae428da2d17
+ -Decision Tree : http://www.learnbymarketing.com/tutorials/rpart-decision-trees-in-r/
+ -Decision Tree : https://www.datacamp.com/community/tutorials/decision-trees-R
+ -Introduction to Data Science (Case Study Moneyball):             https://rafalab.github.io/dsbook/linear-models.html#case-study-moneyball
 =======
 >>>>>>> bf59d52d90d6b4ab9b840f4b7fa1cd132debf1fb
