@@ -8,11 +8,7 @@ library(RCurl)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+1. Loading the data
 
 ```{r}
 class_df <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework2/classification-output-data.csv")
@@ -21,18 +17,114 @@ exp_val <- class_df$class
 pred_val <- class_df$scored.class
 ```
 
+2. Using the table() function to create a confusion matrix
 
 ```{r}
-table_class <- table(exp_val, pred_val)
-colnames(table_class) <- c("False", "Positive")
-rownames(table_class) <- c("False", "Positive")
+table_class <- table(pred_val, exp_val)
+#colnames(table_class) <- c("Negative", " Positive")
+#ownames(table_class) <- c("Negative", "Positive") I'm having a hard time coming up with the right labels
+table_class
 ```
-## Including Plots
+In the output above, the rows represent the predicted values for the class of each observation (ie. the scored.class value), while the columns represent the actual values for class. Thus, the first quadrant is the true negatives, the second quadrant is the number of False Negatives, the third quadrant is the number of False Positives, while the fourth quadrant is the number of True Positives.
 
-You can also embed plots, for example:
+3. Write a function for accuracy
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+calculate_accuracy <- function(df){
+  TP <- sum(df$class == 1 & class_df$scored.class == 1) 
+  TN <- sum(df$class == 0 & class_df$scored.class == 0)
+  (TP + TN)/nrow(df)
+}
+
+calculate_accuracy(class_df)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+4. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
+and returns the classification error rate of the predictions.
+
+```{r}
+calc_error_rate <- function(df){
+   FP <- sum(df$class == 0 & class_df$scored.class == 1) 
+   FN <- sum(df$class == 1 & class_df$scored.class == 0)
+   (FP + FN)/nrow(df)
+}
+
+calc_error_rate(class_df)
+```
+
+5. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
+and returns the precision of the predictions.
+```{r}
+calc_precision <- function(df){
+  FP <- sum(df$class == 0 & class_df$scored.class == 1)
+  TP <- sum(df$class == 1 & class_df$scored.class == 1)
+  TP/(TP +FP)
+}
+
+calc_precision(class_df)
+```
+
+
+6. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
+and returns the sensitivity of the predictions. Sensitivity is also known as recall.
+
+```{r}
+calc_sensitivity <- function(df){
+  TP <- sum(df$class == 1 & class_df$scored.class == 1)
+  FN <- sum(df$class == 1 & class_df$scored.class == 0)
+  TP/(TP + FN)
+}
+
+calc_sensitivity(class_df)
+```
+
+7. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
+and returns the specificity of the predictions.
+
+```{r}
+calc_specificity <- function(df){
+  FP <- sum(class_df$class == 0 & class_df$scored.class == 1)
+  TN <- sum(class_df$class == 0 & class_df$scored.class == 0)
+  TN/(TN + FP)
+}
+
+calc_specificity(class_df)
+```
+
+8. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
+and returns the F1 score of the predictions.
+```{r}
+calc_f1 <- function(df){
+  (2* calc_precision(df)*calc_sensitivity(df))/(calc_precision(df) + calc_sensitivity(df))
+}
+
+calc_f1(class_df)
+```
+
+9. Before we move on, let’s consider a question that was asked: What are the bounds on the F1 score? Show
+that the F1 score will always be between 0 and 1. (Hint: If 0 < 𝑎 < 1 and 0 < 𝑏 < 1 then 𝑎𝑏 < 𝑎.)
+
+
+10. Write a function that generates an ROC curve from a data set with a true classification column (class in our
+example) and a probability column (scored.probability in our example). Your function should return a list that includes the plot of the ROC curve and a vector that contains the calculated area under the curve
+(AUC). Note that I recommend using a sequence of thresholds ranging from 0 to 1 at 0.01 intervals.
+
+
+11. Use your created R functions and the provided classification output data set to produce all of the
+classification metrics discussed above.
+
+
+
+12. Investigate the caret package. In particular, consider the functions confusionMatrix, sensitivity, and
+specificity. Apply the functions to the data set. How do the results compare with your own functions?
+
+
+
+
+13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results
+compare with your own functions?
+
+
+
+
