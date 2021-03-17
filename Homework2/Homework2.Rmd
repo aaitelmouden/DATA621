@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r include = FALSE}
 library(tidyverse)
 library(kableExtra)
+library(caret)
+library(pROC)
 
 ```
 
@@ -39,13 +41,13 @@ In the output above, the rows represent the predicted values for the class of ea
 
 ```{r}
 
-calculate_accuracy <- function(df){
+calc_accuracy <- function(df){
   TP <- sum(df$class == 1 & class_df$scored.class == 1) 
   TN <- sum(df$class == 0 & class_df$scored.class == 0)
   (TP + TN)/nrow(df)
 }
 
-calculate_accuracy(data)
+calc_accuracy(data)
 
 ```
 
@@ -200,10 +202,17 @@ classification metrics discussed above.
 
 ```{r}
 
+Metric <- c('Accuracy','Classification Error Rate', 'Precision', 'Sensitivity','Specificity', 'F1 Score')
+Value <- round(c(calc_accuracy(data), calc_error_rate(data), calc_precision(data), calc_sensitivity(data), calc_specificity(data), calc_f1(data)), 4)
+
+# New variable that calculate the value en %
+Percent_value <- Value * 100
+df1 <- data_frame(Metric, Value, Percent_value)
+
+names(df1)[3] = "Value(%)"
 
 
-
-
+kable(df1)
 
 ```
 
@@ -213,18 +222,54 @@ specificity. Apply the functions to the data set. How do the results compare wit
 
 
 ```{r}
+# Using 
+# Confusion matrix, cm
 
+cm <- confusionMatrix(data = as.factor(data$scored.class), 
+                      reference = as.factor(data$class), 
+                      positive = "1")
 
-
-
+cm$table
 
 ```
 
+
+```{r}
+
+# Get the metric from confusionMatrix features
+
+Value <- round(c(cm$overall[1], 1 - cm$overall[1], cm$byClass[3], 
+            cm$byClass[1], cm$byClass[2], cm$byClass[7]), 4)
+
+
+Percent_value <- Value * 100
+df1 <- data_frame(Metric, Value, Percent_value)
+
+names(df1)[3] = "Value(%)"
+
+
+kable(df1)
+
+```
+
+**The results are the same as our own functions**
 
 
 13. Investigate the pROC package. Use it to generate an ROC curve for the data set. How do the results
 compare with your own functions?
 
+```{r}
+# Using pRoc package
 
+curve <- roc(response = data$class, 
+    predictor = data$scored.probability, 
+    plot = TRUE, 
+    print.auc = TRUE, 
+    main = "ROC Curve")
+
+
+```
+
+**The curve looks similar to the one with our functions. Also, the AUC is the same".
 
 
