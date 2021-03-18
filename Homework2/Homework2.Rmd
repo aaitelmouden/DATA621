@@ -28,7 +28,7 @@ data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/
 
 ```
 
-2. Using the table() function to create a confusion matrix
+2. Use the table() function to get the raw confusion matrix for this scored dataset. Make sure you understand the output. In particular, do the rows represent the actual or predicted class? The columns?
 
 ```{r}
 data_table <- table(data$class, data$scored.class)
@@ -37,7 +37,14 @@ data_table
 ```
 In the output above, the rows represent the predicted values for the class of each observation (ie. the scored.class value), while the columns represent the actual values for class. Thus, the first quadrant is the true negatives, the second quadrant is the number of False Negatives, the third quadrant is the number of False Positives, while the fourth quadrant is the number of True Positives.
 
-3. Write a function for accuracy
+3.  Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the accuracy of the predictions.
+
+
+$$
+
+Accuracy = \frac{TP+TN}{TP+FP+TN+FN}
+
+$$
 
 ```{r}
 
@@ -51,8 +58,18 @@ calc_accuracy(data)
 
 ```
 
+
 4. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
 and returns the classification error rate of the predictions.
+
+$$
+
+Classification\ Error\ Rate = \frac{FP+TN}{TP+FP+TN+FN}
+
+$$
+
+Verify that you get an accuracy and an error rate that sums to one.
+
 
 ```{r}
 calc_error_rate <- function(df){
@@ -64,8 +81,16 @@ calc_error_rate <- function(df){
 calc_error_rate(data)
 ```
 
-5. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
-and returns the precision of the predictions.
+
+5. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the precision of the predictions.
+
+
+$$
+
+Precision = \frac{TP}{TP+FP}
+
+$$
+
 
 ```{r}
 calc_precision <- function(df){
@@ -78,8 +103,13 @@ calc_precision(data)
 ```
 
 
-6. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
-and returns the sensitivity of the predictions. Sensitivity is also known as recall.
+6. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the sensitivity of the predictions. Sensitivity is also known as recall.
+
+$$
+
+Sensitivity = \frac{TP}{TP+FN}
+
+$$
 
 ```{r}
 
@@ -92,8 +122,14 @@ calc_sensitivity <- function(df){
 calc_sensitivity(data)
 ```
 
-7. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
-and returns the specificity of the predictions.
+7. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified, and returns the specificity of the predictions.
+
+$$
+
+Specificity = \frac{TN}{TN+FP}
+
+$$
+
 
 ```{r}
 calc_specificity <- function(df){
@@ -107,6 +143,15 @@ calc_specificity(data)
 
 8. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
 and returns the F1 score of the predictions.
+
+
+$$
+
+F1 \ Score = \frac{2*Precision*Sensitivity}{Precision+Sensitivity}
+
+$$
+
+
 ```{r}
 calc_f1 <- function(df){
   (2* calc_precision(df)*calc_sensitivity(df))/(calc_precision(df) + calc_sensitivity(df))
