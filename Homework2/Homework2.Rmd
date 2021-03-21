@@ -62,7 +62,13 @@ data_table <- table(data$class, data$scored.class)
 
 data_table
 ```
-In the output above, the rows represent the predicted values for the class of each observation (ie. the scored.class value), while the columns represent the actual values for class. Thus, the first quadrant is the true negatives, the second quadrant is the number of False Negatives, the third quadrant is the number of False Positives, while the fourth quadrant is the number of True Positives.
+In the output above, the rows represent the predicted values for the class of each observation (ie. the scored.class value), while the columns represent the actual values for class. Thus, the first quadrant is the true negatives, the second quadrant is the number of False Negatives, the third quadrant is the number of False Positives, while the fourth quadrant is the number of True Positives:
+
+- TP True Positive Row1Col1: 119 correct predictions were made about class 0 (Actual 0 and Predicted 0)
+- TN True Positive Row2Col2: 27 correct predictions were made about class 1 (Actual 1 and Predicted 1)
+- FN False Positive Row2Col1: 5 of the observations had an actual value of 0 but predicted as 1.
+- FP False Negative Row1Col2: 30 of the observations had an actual value of 1 but predicted as 0
+
 
 # R Accuracy Function 
 
@@ -157,6 +163,7 @@ calc_specificity <- function(df){
 calc_specificity(data)
 ```
 
+
 # R F1 Score Function
 
 8. Write a function that takes the data set as a dataframe, with actual and predicted classifications identified,
@@ -181,8 +188,9 @@ that the F1 score will always be between 0 and 1. (Hint: If 0 < 𝑎 < 1 and 0 <
 
 ```{r}
 
-# To show this, we are going to use uniform distribution with function runif to generate random deviates
-# Then run the calc_f1 function and show that min and max values of f1_score will always fall are within 0 and 1
+# To show this, we are going to use uniform distribution with function runif to generate
+# random deviates Then run the calc_f1 function and show that min and max values of f1_score 
+# will always fall are within 0 and 1
 
 # let pre be the precision and sens be the sensitivity (values in percent/between 0 and 1)
 
@@ -337,4 +345,6 @@ curve <- roc(response = data$class,
 
 **The curve looks similar to the one with our functions. Also, the AUC is the same".
 
+### Github link for code
 
+https://github.com/aaitelmouden/DATA621
