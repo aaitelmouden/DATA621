@@ -1,30 +1,95 @@
 ---
-title: "HW3"
-author: "Patrick Maloney"
-date: "4/7/2021"
-output: pdf_document
+title: "Multiple linear regression and binary logistic regression models"
+author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
+date: "4/13/2021"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+    
+  
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r include=FALSE}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+library(corrplot)
+library(tidyverse)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(mice)
+library(gt)
+library(caret)
+library(bnstruct)
+library(VIM)
+library(corrr)
+library(kableExtra)
+library(rpart)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Overview
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+This assignment is about to explore, to analyze and to model a data set containing approximately 8000
+records representing a customer at an auto insurance company. Each record has two response variables. The
+first response variable, TARGET_FLAG, is a 1 or a 0. A “1” means that the person was in a car crash. A zero
+means that the person was not in a car crash. The second response variable is TARGET_AMT. This value is zero
+if the person did not crash their car. But if they did crash their car, this number will be a value greater than zero.
+Your objective is to build multiple linear regression and binary logistic regression models on the training data
+to predict the probability that a person will crash their car and also the amount of money it will cost if the person
+does crash their car. You can only use the variables given to you (or variables that you derive from the variables
+provided).
+
+## Data exploration
+
+Below is a short description of the variables of interest in the data set:
+
+
+
+
+
+
+
+
+
+```{r include=FALSE}
+#Import data 
+train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/insurance_training_data.csv")
+glimpse(train_data)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r include=FALSE}
+#Import data 
+train_data1 <- subset(train_data, select = -c(INDEX, TARGET_FLAG, TARGET_AMT))
+
+glimpse(train_data1)
+```
+
+
+
+\newpage
+
+ 
+
+\begin{center}
+Figure 1 :  Summary Statistics
+\end{center}
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Summary table 
+
+table1 <- tbl_summary(train_data1,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
+```
+
+
+\begin{center}
+Mean (SD) Median Minimum Maximum 
+\end{center}
+
+
