@@ -37,12 +37,18 @@ library(rpart)
 ## Abstract
 
 
-```{r include=FALSE}
+```{r include=true}
 
 #Import data 
 
-train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Project1/moneyball-training-data.csv")
+raw_train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/crime-training-data_modified.csv")
 glimpse(train_data)
+
+#Find any NA values in data
+sum(is.na(train_data))
+
+
+#train_data <- raw_train_data[-13]
 
 ```
 \newpage
@@ -54,60 +60,22 @@ glimpse(train_data)
 
 # Summary table 
 
-wins <- train_data %>% select(TARGET_WINS, TEAM_BATTING_H, TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, TEAM_BATTING_BB, TEAM_BATTING_HBP, TEAM_BATTING_SO, TEAM_BASERUN_SB, TEAM_BASERUN_CS, TEAM_FIELDING_E, TEAM_FIELDING_DP, TEAM_PITCHING_BB, TEAM_PITCHING_SO, TEAM_FIELDING_E, TEAM_FIELDING_DP)
-table1 <- tbl_summary(wins,
+
+table1 <- tbl_summary(raw_train_data,
           statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
 table1
 ```
 
 
+```{r}
+raw_train_data$target <- factor(raw_train_data$target)
 
 
+violin <- ggplot(raw_train_data, aes(x=target, y=rad)) + 
+  geom_violin()
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-# Layout to split the screen
-layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,8))
-
-# Draw the boxplot and the histogram 
-par(mar=c(0, 3.1, 1.1, 2.1))
-boxplot(train_data$TARGET_WINS ,main="Figure 2 : Distribution and Probability Plot for TARGET_WINS",cex.main=1, horizontal=TRUE , ylim=c(0,150), xaxt="n" , col=rgb(0.8,0.8,0,0.5) , frame=F)
-par(mar=c(4, 3.1, 1.1, 2.1))
-hist(train_data$TARGET_WINS , breaks=40 , col=rgb(0.2,0.8,0.5,0.5) , border=F , main="" , xlab="TARGET WINS", xlim=c(0,150))
-
+violin
 ```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-qqnorm(train_data$TARGET_WINS, pch = 1, frame = FALSE)
-qqline(train_data$TARGET_WINS, col = "steelblue", lwd = 2)
-```
-
-
-Now in order to build our models properly It's worth exploring for other columns with NA values.
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-max_obs <- 2276
-batting_so_na <- ((102/max_obs) * 100)
-baserun_sb_na <- (131/max_obs) * 100
-baserun_cs_na <- (772/max_obs) * 100
-batting_hbp_na <- (2085/max_obs) * 100
-pitching_so_na <- (102/max_obs) * 100
-fielding_dp_na <- (286/max_obs) * 100
-
-df_percent_na <- data.frame(Columns_w_NA = c("team_batting_so", "team_baserun_sb", "team_baserun_cs", "team_batting_hbp", "team_pitching_so", "team_fielding_dp"), Percent_NA = c(batting_so_na, baserun_sb_na, baserun_cs_na, batting_hbp_na, pitching_so_na, fielding_dp_na))
-
-# the largest islands in the world
-gt_tbl <- gt(data = df_percent_na, )
-
-# Show the gt Table
-gt_tbl
-```
-
-
 
 ### Outliers
 
@@ -115,7 +83,7 @@ The following diagram shows the outliers for all the variables, both dependent a
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) + 
+ggplot(stack(raw_train_data[-13]), aes(x = ind, y = values, fill=ind)) + 
   geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
   coord_cartesian(ylim = c(0, 1000)) +
   theme_classic()+
@@ -132,28 +100,27 @@ ggplot(stack(train_data[,-1]), aes(x = ind, y = values, fill=ind)) +
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-COR <- train_data %>% 
+COR <- raw_train_data %>% 
   correlate() %>% 
-  focus(TARGET_WINS)
+  focus(target)
 gt(COR)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 COR %>% 
-  mutate(rowname = factor(term, levels = term[order(TARGET_WINS)])) %>%  # Order by correlation strength
-  ggplot(aes(x = rowname, y = TARGET_WINS)) +
+  mutate(rowname = factor(term, levels = term[order(target)])) %>%  # Order by correlation strength
+  ggplot(aes(x = rowname, y = target)) +
     geom_bar(stat = "identity") +
     ylab("Correlation with TARGET WINS") +
     xlab("Variables") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ ggtitle("Figure 4: Correlation Against Target Win")
 ```
-Before entirely excluding variables, it is a good idea to transform the data by fixing missing values or combining variables and reexamine the viability of those variables for predicting wins.
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 #pairwise.complete.obs ignores NA values and computes correlation on complete observations
 #we might have to run these corrplots again after we handle the NA values
-chart.Correlation(train_data[-c(1)], histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
+chart.Correlation(raw_train_data, histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
 ```
 
 
