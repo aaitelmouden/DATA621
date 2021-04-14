@@ -67,29 +67,37 @@ table1
 ```
 
 
+Proportion of target among the data. 0 means the crime rate below the median crime rate while 1 is above the median crime rate.
 ```{r}
 raw_train_data$target <- factor(raw_train_data$target)
 
+raw_train_data %>% 
+  ggplot(aes(x=target, y = ..prop.., group = 1)) + 
+  geom_bar(fill = 'firebrick', color = 'black')  +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) + 
+  xlab("Median Crime Rate") +
+  ylab("Proportion") +
+  ylim(0, 0.55)
 
-violin <- ggplot(raw_train_data, aes(x=target, y=rad)) + 
-  geom_violin()
-
-violin
 ```
 
-### Outliers
-
-The following diagram shows the outliers for all the variables, both dependent and independent.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-ggplot(stack(raw_train_data[-13]), aes(x = ind, y = values, fill=ind)) + 
-  geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
-  coord_cartesian(ylim = c(0, 1000)) +
-  theme_classic()+
-  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+```{r}
+raw_train_data %>%
+  dplyr::select(-chas) %>% 
+  gather(key, value, -target) %>% 
+  mutate(key = factor(key)) %>% 
+  ggplot(aes(x = key, y = value)) +
+  geom_boxplot(aes(fill = target)) +
+  facet_wrap(~ key, scales = 'free', ncol = 3)
 ```
+```{r}
+raw_train_data %>%
+  gather(key, value, -c(target)) %>%
+  ggplot(aes(value)) +
+  geom_histogram() +
+  facet_wrap(~ key, scales = 'free', ncol = 3)
 
+```
 
 
 
@@ -128,29 +136,6 @@ chart.Correlation(raw_train_data, histograme=TRUE, method= "pearson", use="pairw
 data.corr <- cor(train_data[-c(1)], use="pairwise.complete.obs")
 
 corrplot(data.corr, type = "lower", method="square")
-```
-
-
-```{r, include = FALSE}
-flattenCorrMatrix <- function(cormat, pmat) {
-  ut <- upper.tri(cormat)
-  data.frame(
-    row = rownames(cormat)[row(cormat)[ut]],
-    column = rownames(cormat)[col(cormat)[ut]],
-    cor  =(cormat)[ut],
-    p = pmat[ut]
-    )
-}
-```
-
-
-```{r include=FALSE}
-#eliminate INDEX from data frame
-data_no_index <- train_data[-c(1)]
-
-cor_matrix <- rcorr(as.matrix(data_no_index))
-
-flattenCorrMatrix(cor_matrix$r, cor_matrix$P)
 ```
 
 
