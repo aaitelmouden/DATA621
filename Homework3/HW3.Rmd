@@ -42,10 +42,14 @@ library(rpart)
 #Import data 
 
 raw_train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/crime-training-data_modified.csv")
-glimpse(train_data)
+
+
+glimpse(raw_train_data)
+
+cp_data <- raw_train_data
 
 #Find any NA values in data
-sum(is.na(train_data))
+sum(is.na(raw_train_data))
 
 
 #train_data <- raw_train_data[-13]
@@ -107,8 +111,7 @@ raw_train_data %>%
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-COR <- raw_train_data %>% 
+COR <- cp_data %>% 
   correlate() %>% 
   focus(target)
 gt(COR)
@@ -133,7 +136,7 @@ chart.Correlation(raw_train_data, histograme=TRUE, method= "pearson", use="pairw
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-data.corr <- cor(train_data[-c(1)], use="pairwise.complete.obs")
+data.corr <- cor(cp_data, use="pairwise.complete.obs")
 
 corrplot(data.corr, type = "lower", method="square")
 ```
@@ -162,9 +165,17 @@ gg_miss_case(train_data)+
 
 ## BUILD MODELS
 
+```{r}
+model1 <- glm(target~., family=binomial, data=raw_train_data)
+summary(model1)
+```
+
+```{r}
+library(MASS)
 
 
 
+```
 ## SELECT MODELS
 
 
