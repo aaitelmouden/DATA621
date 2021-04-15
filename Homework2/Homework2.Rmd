@@ -128,6 +128,11 @@ calc_precision <- function(df){
 
 calc_precision(data)
 ```
+```{r}
+posPredValue(table(data$scored.class, data$class))
+```
+
+
 
 # R Sensitivity Function
 
@@ -145,6 +150,10 @@ calc_sensitivity <- function(df){
 
 calc_sensitivity(data)
 ```
+```{r}
+sensitivity(table(data$scored.class, data$class))
+```
+
 
 # R Specificity Function
 

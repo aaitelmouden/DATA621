@@ -30,48 +30,45 @@ library(gtsummary)
 library(kableExtra)
 library(naniar)
 library(rpart)
+library(skimr)
 
 ```
 
 
-## Data Exploration
+## Introduction
+
+The aim of this assignment is to build a binary logistic regression model to predict whether a neighborhood will be at risk for high crime levels, using a data set containing information on crime for various neighborhoods of a major city. Each record has a response variable indicating whether or not the crime rate is above the median crime rate (1) or not (0). before building the model we will perform some Exploratory Data Analysis (EDA): To visualize distributions and draw correlations between attributes. There are few issues in the data. Although there are no missing values but most of the variables seem to be skewed and not normally distributed, hence we use log transformation to make them symmetric. The obtained model were tested on criminal evaluation data. We compared the results of model predictions and selected the best binary logistic regression model.
 
 
-```{r include=true}
+## DATA EXPLORATION
 
-#Import data 
+In this section, we are going to explore the data to see the data type and data structure, We will also check the correlation among the variables and most importantly to see if there are missing values in the data. 
 
-raw_train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/crime-training-data_modified.csv")
+Both training and evaluation datasets have been read using read.csv function and above table is a sample of training dataset. we can see that the data is composed of 466 observations and 12 predictor variables. The response variable target is binary (0 or 1). All observations in this dataset are complete.
 
 
-glimpse(raw_train_data)
+```{r include=true, echo=FALSE, message=FALSE, warning=FALSE}
+
+# load the data 
+
+raw_train_data <- read.csv("./data/crime-training-data_modified.csv")
+raw_test_data <- read.csv("./data/crime-evaluation-data_modified.csv")
 
 cp_data <- raw_train_data
 
-#Find any NA values in data
-sum(is.na(raw_train_data))
-
-
-#train_data <- raw_train_data[-13]
-
+glimpse(raw_train_data)
 ```
+Now let's explore the data structure using skim function from skimr package. This is an efficient function which not only produces the statistics summary but also builds histogram for each numberic variable, show number of missing values and quantiles. This gives a bird eye view of the training dataset.
+
+```{r}
+# getting useful summary statistics
+skim(raw_train_data)
+```
+
 \newpage
 
-
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-# Summary table 
-
-
-table1 <- tbl_summary(raw_train_data,
-          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
-table1
-```
-
-
 Proportion of target among the data. 0 means the crime rate below the median crime rate while 1 is above the median crime rate.
+
 ```{r}
 raw_train_data$target <- factor(raw_train_data$target)
 
@@ -84,6 +81,21 @@ raw_train_data %>%
   ylim(0, 0.55)
 
 ```
+Looking at the histograms and box plots of each we can observe that:
+
+- **age**: The box plot shows that generally older homes in neighborhoods are see as associated with higher crime.
+- **chas**: most homes in the dataset border the Charles River, thus this may not be a good predictor variable 
+- **dis**: a right skewed distribution where a lower distance to employment centers shows a higher crime indicator
+- **indus**: bi-modal distribution of industrial sectors and generally seen by the box plots that the higher industrial activity results in an increased crime factor
+- **lstat**: a predictor variable based on “status” of population. However it is ambigious what the sale in this factor reflects, but the observation is that the higher on the lstat scale the more indicator of crime
+- **mdev**: median value of homes, and seems correct that we would see higher value homes associated with lower crimes
+- **nox**: the amount of nitrogen oxides concentrations is right skewed with most locations not having a “high” amount, and as the concentration increases as does the crime
+- **ptratio**: student to teacher ratio, as convention and observation show a high student to teacher ratio is indicative of higher crimes
+- **rad**: the distance to highways seems slightly bi-modal, and higher distance from highways seems to be associated with higher crime, however the variability on the positive crime indicator is very large
+- **rm**: the average number of rooms per home looks normally distributed and the association with crime seems evenly distributed as per the box plot
+- **tax**: the property tax variable is bi-modal, the box plot shows that the variability of a positive crime indicator is fairly large
+- **zn**: large lot zones show most values as 0 and lower proportions seems associated with higher crime
+
 
 ```{r}
 raw_train_data %>%
@@ -103,11 +115,15 @@ raw_train_data %>%
 
 ```
 
-
-
-
 ### Correlations among predictors and Variable Selection
 
+
+
+Note i wasn't able to run the code i got the error saying : Object is not a `skim_df`: missing column `skim_type`
+
+I add a new code for the correlations using ggcorrplot function here is a documentation
+http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2
+--------------------------------------------------------------------------------------
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -140,10 +156,28 @@ data.corr <- cor(cp_data, use="pairwise.complete.obs")
 
 corrplot(data.corr, type = "lower", method="square")
 ```
+--------------------------------------------------------------------------------------
+
+**Correlation using ggcorrplot**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(ggcorrplot)
+
+q <- cor(raw_train_data)
+ggcorrplot(q, type = "upper", outline.color = "white",
+           ggtheme = theme_classic,
+           colors = c("#6D9EC1", "white", "#E46726"),
+           lab = TRUE, show.legend = FALSE, tl.cex = 8, lab_size = 3)
+```
+According to correlation plot the target variable is positively correlated with nox(.73), age(.63), rad(.63), and tax(.61). Also we can see the target variable is negatively correlated with dis(-.62) as seen in the histogram and box plots, the chas variable as a very weak correlation with all the other variables, and including the target. Therefore we can look to eliminate it from the analysis. We also noticed that there is present a amount of correlation amongst the predictor variables and this is suspect for multicollinearity issues
+
 
 
 ## Data Preparation
 
+--------------------------------------------
+Why do you want to eleminate the last colomun. I think we need to eleminate the chas variable since it is not correlated. 
+-----------------------------------------
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 train_data <- train_data[-11]
