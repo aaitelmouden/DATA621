@@ -147,15 +147,9 @@ COR %>%
 
 #pairwise.complete.obs ignores NA values and computes correlation on complete observations
 #we might have to run these corrplots again after we handle the NA values
-chart.Correlation(raw_train_data, histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
+chart.Correlation(cp_data, histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
 ```
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-data.corr <- cor(cp_data, use="pairwise.complete.obs")
-
-corrplot(data.corr, type = "lower", method="square")
-```
 --------------------------------------------------------------------------------------
 
 **Correlation using ggcorrplot**
@@ -163,7 +157,7 @@ corrplot(data.corr, type = "lower", method="square")
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(ggcorrplot)
 
-q <- cor(raw_train_data)
+q <- cor(cp_data)
 ggcorrplot(q, type = "upper", outline.color = "white",
            ggtheme = theme_classic,
            colors = c("#6D9EC1", "white", "#E46726"),
@@ -175,41 +169,41 @@ According to correlation plot the target variable is positively correlated with 
 
 ## Data Preparation
 
---------------------------------------------
-Why do you want to eleminate the last colomun. I think we need to eleminate the chas variable since it is not correlated. 
------------------------------------------
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-train_data <- train_data[-11]
+#Eliminating the chas variable
+train_data <- raw_train_data %>% dplyr::select(-chas)
 ```
 
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-
-par(mfrow=c(1,2))
-gg_miss_upset(train_data, 
-              nsets = 5,
-              nintersects = NA)
-gg_miss_case(train_data)+
-  theme_classic()
+Performing a box cox transformation
+```{r}
+train_boxcox <- preProcess(train_data, c("BoxCox"))
+td_bx <- predict(train_boxcox, train_data)
 ```
 
 
 ## BUILD MODELS
+
+
+###Model 1
+The first model is the simplest. Run the logistic regression formula with all the variables as predictors and manually eliminate variables based on significance.
 
 ```{r}
 model1 <- glm(target~., family=binomial, data=raw_train_data)
 summary(model1)
 ```
 
-```{r}
-library(MASS)
 
+###Model 2
+```{r}
+model2 <- glm(target~., family = "binomial", data=td_bx)
+summary(model2)
 
 
 ```
+
+###Model 3
+
 ## SELECT MODELS
 
 
