@@ -172,37 +172,78 @@ According to correlation plot the target variable is positively correlated with 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Eliminating the chas variable
 train_data <- raw_train_data %>% dplyr::select(-chas)
+train_data$target <- factor(train_data$target)
 ```
 
-
-Performing a box cox transformation
 ```{r}
-train_boxcox <- preProcess(train_data, c("BoxCox"))
-td_bx <- predict(train_boxcox, train_data)
+set.seed(123)
+
+training.samples <- train_data$target %>% createDataPartition(p= 0.8, list = FALSE)
+
+train.data <- train_data[training.samples, ]
+test.data <- train_data[-training.samples, ]
 ```
+
+<!-- Performing a box cox transformation -->
+<!-- ```{r} -->
+<!-- train_boxcox <- preProcess(train_data, c("BoxCox")) -->
+<!-- td_bx <- predict(train_boxcox, train_data) -->
+<!-- ``` -->
 
 
 ## BUILD MODELS
 
 
-###Model 1
+### Model 1
 The first model is the simplest. Run the logistic regression formula with all the variables as predictors and manually eliminate variables based on significance.
 
 ```{r}
-model1 <- glm(target~., family=binomial, data=raw_train_data)
+model1 <- glm(target~., family=binomial, data=train.data)
 summary(model1)
 ```
 
-
-###Model 2
 ```{r}
-model2 <- glm(target~., family = "binomial", data=td_bx)
-summary(model2)
-
-
+summary(model1$fitted.values)
 ```
 
-###Model 3
+```{r}
+probabilities <- model1 %>% predict(test.data, type = "response")
+predicted1.classes <- ifelse(probabilities > 0.5, "1", "0")
+predicted1.classes
+```
+
+```{r}
+contrasts(test.data$target)
+```
+
+```{r}
+mean(predicted1.classes == test.data$target)
+```
+
+### Model 2
+```{r}
+model2 <- stepAIC(model1)
+summary(model2)
+```
+
+```{r}
+summary(model2$fitted.values)
+```
+
+```{r}
+probabilities <- model2 %>% predict(test.data, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "1", "0")
+predicted.classes
+```
+
+```{r}
+contrasts(test.data$target)
+```
+
+```{r}
+mean(predicted.classes == test.data$target)
+```
+
 
 ## SELECT MODELS
 
