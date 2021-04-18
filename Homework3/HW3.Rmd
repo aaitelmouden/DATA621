@@ -31,10 +31,16 @@ library(gtsummary)
 library(kableExtra)
 library(naniar)
 library(rpart)
-library(skimr)
+#library(skimr)
 library(pROC)
 library(MASS)
 library(dplyr)
+library(jtools)
+library(ggcorrplot)
+#library(glmulti)
+library(tibble)
+library(performance)
+
 ```
 
 
@@ -54,8 +60,9 @@ Both training and evaluation datasets have been read using read.csv function and
 
 # load the data 
 
-raw_train_data <- read.csv("./data/crime-training-data_modified.csv")
-raw_test_data <- read.csv("./data/crime-evaluation-data_modified.csv")
+raw_train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/data/crime-training-data_modified.csv")
+
+raw_test_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/data/crime-evaluation-data_modified.csv")
 
 cp_data <- raw_train_data
 
@@ -65,8 +72,13 @@ glimpse(raw_train_data)
 Now let's explore the data structure using skim function from skimr package. This is an efficient function which not only produces the statistics summary but also builds histogram for each numberic variable, show number of missing values and quantiles. This gives a bird eye view of the training dataset.
 
 ```{r}
+
 # getting useful summary statistics
-skim(raw_train_data)
+#skim(raw_train_data)
+
+table1 <- tbl_summary(raw_train_data,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
 ```
 
 \newpage
@@ -110,6 +122,8 @@ raw_train_data %>%
   geom_boxplot(aes(fill = target)) +
   facet_wrap(~ key, scales = 'free', ncol = 3)
 ```
+
+
 ```{r}
 raw_train_data %>%
   gather(key, value, -c(target)) %>%
@@ -122,20 +136,18 @@ raw_train_data %>%
 ### Correlations among predictors and Variable Selection
 
 
-
-Note i wasn't able to run the code i got the error saying : Object is not a `skim_df`: missing column `skim_type`
-
-I add a new code for the correlations using ggcorrplot function here is a documentation
-http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2
 --------------------------------------------------------------------------------------
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 COR <- cp_data %>% 
   correlate() %>% 
   focus(target)
+
 gt(COR)
 ```
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 COR %>% 
@@ -159,7 +171,6 @@ chart.Correlation(cp_data, histograme=TRUE, method= "pearson", use="pairwise.com
 **Correlation using ggcorrplot**
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(ggcorrplot)
 
 q <- cor(cp_data)
 ggcorrplot(q, type = "upper", outline.color = "white",
@@ -175,6 +186,7 @@ According to correlation plot the target variable is positively correlated with 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Eliminating the chas variable
+
 train_data <- raw_train_data %>% dplyr::select(-chas)
 train_data$target <- factor(train_data$target)
 ```
@@ -203,7 +215,7 @@ The first model is the simplest. Run the logistic regression formula with all th
 
 
 ```{r}
-library(tibble)
+
 model1 <- glm(target~., family=binomial, data=raw_train_data)
 summary(model1)
 
@@ -229,6 +241,7 @@ We will plot the ROC curve for the predictive result. ROC in logistic regression
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 p <- plot(roc(results$target.class,glm.probs), print.auc = TRUE)
 ```
+
 Using the summ() function we can display model1 regression summary. the first model shows an R square of 0.83. The AIC and the BIC are 218.05, 271.92 alternatively. 
 
 ```{r}
@@ -241,7 +254,7 @@ summ(model1)
 Although we have used backward elimination in which we eliminated insignificant variables one by one from the model as discussed before. We can use step() function which is more robust and it is used for stepwise regression. Basically, it eliminates all the insignificant variables one-by-one under the hood and brings the significant variables. This model is used only to verify the result of Model1 using step-wise regression
 
 ```{r, message=FALSE,warning=FALSE}
-library(jtools)
+
 model2 <- step(model1)
 summ(model2)
 ```
@@ -261,13 +274,14 @@ glmulti finds what are the n best models (the confidence set of models) among al
 
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 # Model4 using glmulti()
-library(glmulti)
+
 model3 <- glmulti(target ~ ., data = raw_train_data, level = 1, method="h", crit = "aic", plotty = FALSE, fitfunction = "glm", family=binomial)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 print(model3)
 ```
+
 ```{r}
 plot(model3)
 ```
@@ -299,7 +313,7 @@ In this section, we are going to select the best model out of all through using 
 
 
 ```{r, message=FALSE,warning=FALSE}
-library(performance)
+
 compare_performance(model1, model2, rank = TRUE) %>% kable() %>% kable_styling()
 model_performance(model3@objects[[1]]) %>% kable() %>% kable_styling()
 
