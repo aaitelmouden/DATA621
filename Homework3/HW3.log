@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2021.3.18)  18 APR 2021 23:13
+This is XeTeX, Version 3.14159265-2.6-0.999992 (TeX Live 2020) (preloaded format=xelatex 2021.3.18)  18 APR 2021 23:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -905,90 +905,90 @@ LaTeX Warning: `!h' float specifier changed to `!ht'.
 File: HW3_files/figure-latex/unnamed-chunk-18-1.pdf Graphic file (type pdf)
 <use HW3_files/figure-latex/unnamed-chunk-18-1.pdf>
 
-Underfull \hbox (badness 10000) in paragraph at lines 781--789
+Underfull \hbox (badness 10000) in paragraph at lines 780--788
 [][]
  []
 
 [15]
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ##                                                           
                          model[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 1                         target ~ 1 + zn + nox + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 2                 target ~ 1 + zn + nox + age + dis + rad 
 + tax + ptratio + lstat + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 3                    target ~ 1 + zn + nox + rm + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 4                  target ~ 1 + zn + chas + nox + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 5         target ~ 1 + zn + indus + nox + age + dis + rad 
 + tax + ptratio + lstat + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 6          target ~ 1 + zn + indus + chas + nox + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 7                 target ~ 1 + zn + indus + nox + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 8            target ~ 1 + zn + indus + nox + rm + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 9          target ~ 1 + zn + chas + nox + age + dis + rad 
 + tax + ptratio + lstat + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 10            target ~ 1 + zn + chas + nox + rm + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 11 target ~ 1 + zn + indus + chas + nox + age + dis + rad 
 + tax + ptratio + lstat + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 12    target ~ 1 + zn + indus + chas + nox + rm + age + di
 s + rad + tax + ptratio + medv[] 
  []
 
 
-Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
+Overfull \hbox (7.99498pt too wide) in paragraph at lines 826--826
 []\TU/lmtt/m/n/10 ## 13           target ~ 1 + zn + nox + rm + age + dis + rad 
 + tax + ptratio + lstat + medv[] 
  []
@@ -996,26 +996,27 @@ Overfull \hbox (7.99498pt too wide) in paragraph at lines 827--827
 File: HW3_files/figure-latex/unnamed-chunk-20-1.pdf Graphic file (type pdf)
 <use HW3_files/figure-latex/unnamed-chunk-20-1.pdf>
 [16]
-Overfull \hbox (225.1449pt too wide) in paragraph at lines 884--893
+Overfull \hbox (225.1449pt too wide) in paragraph at lines 880--889
+ [][] 
+ []
+
+
+Overfull \hbox (43.82492pt too wide) in paragraph at lines 899--906
  [][] 
  []
 
 [17]
-Overfull \hbox (43.82492pt too wide) in paragraph at lines 903--910
- [][] 
- []
-
 File: HW3_files/figure-latex/unnamed-chunk-22-1.pdf Graphic file (type pdf)
 <use HW3_files/figure-latex/unnamed-chunk-22-1.pdf>
 [18] [19] (./HW3.aux)
 Package rerunfilecheck Info: File `HW3.out' has not changed.
-(rerunfilecheck)             Checksum: A1F557F5D4B03B8E493F0B1A656AC82A;970.
+(rerunfilecheck)             Checksum: 70444A8765069295A9DAF43EC3A467DD;806.
  ) 
 Here is how much of TeX's memory you used:
- 17398 strings out of 478968
- 305830 string characters out of 5868537
- 798780 words of memory out of 5000000
- 36949 multiletter control sequences out of 15000+600000
+ 17397 strings out of 478968
+ 305818 string characters out of 5868537
+ 798745 words of memory out of 5000000
+ 36948 multiletter control sequences out of 15000+600000
  407483 words of font info for 66 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  98i,11n,122p,353b,469s stack positions out of 5000i,500n,10000p,200000b,80000s

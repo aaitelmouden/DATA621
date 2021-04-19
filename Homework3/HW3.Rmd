@@ -44,7 +44,7 @@ library(performance)
 ```
 
 
-## Introduction
+## INTRODUCTION
 
 The aim of this assignment is to build a binary logistic regression model to predict whether a neighborhood will be at risk for high crime levels, using a data set containing information on crime for various neighborhoods of a major city. Each record has a response variable indicating whether or not the crime rate is above the median crime rate (1) or not (0). before building the model we will perform some Exploratory Data Analysis (EDA): To visualize distributions and draw correlations between attributes. There are few issues in the data. Although there are no missing values but most of the variables seem to be skewed and not normally distributed, hence we use log transformation to make them symmetric. The obtained model were tested on criminal evaluation data. We compared the results of model predictions and selected the best binary logistic regression model.
 
@@ -159,7 +159,7 @@ According to correlation plot the target variable is positively correlated with 
 
 
 
-## Data Preparation
+## DATA PREPARATION
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Eliminating the chas variable
@@ -214,7 +214,7 @@ As we can see, summary() returns the estimate, standard errors, z-score, and p-v
 The summary shows also the null deviance (the deviance just for the mean) and the residual deviance (the deviance for the model with all the predictors). There's a large difference between the 2, along with 12 degrees of freedom.
 
 \newpage
-### Prediction
+**Prediction**
 
 We will plot the ROC curve for the predictive result. ROC in logistic regression are used for determining the best cutoff value for predicting whether a new observation is a "failure" (0) or a "success" (1). the ROC curve shows graphically the tradeoff that occurs between trying to maximize the true positive rate vs. trying to minimize the false positive rate. In an ideal situation, you would have sensitivity and specificity near 100% at all cutoffs, meaning you predict perfectly in all cases. which is not the case for our data.
 
@@ -250,7 +250,7 @@ From the summ() output above, it can be seen that:
 
 \newpage
 
-## Model 3 Using glmulti: 
+### Model 3 Using glmulti: 
 
 glmulti finds what are the n best models (the confidence set of models) among all possible models. Models are fitted with the specified fitting function (default is glm) and are ranked with the specified Information Criterion (default is aicc). The output can be used for model selection, variable selection, and multimodel inference. It takes few time to optimize the model though. We will see which model performed best in terms of performance and accuracy in the next section. 
 
@@ -289,8 +289,6 @@ The importance value for a particular predictor is equal to the sum of the weigh
 
 ## SELECT MODELS
 
-## Model Performance
-
 In this section, we are going to select the best model out of all through using **compare_performance** and **model_performance** functions from performance package. The functions calculates AIC, BIC, R2 & adjusted r-sq, RMSE, BF and Performance_Score. If we take a look at first two models, model2 is doing great as we saw before the values of AIC and BIC both are lower. RMSE are almost the same. Model3 was calculated through glmulti() package which optimizes the model and gets the best. The value of AIC and BIC, and RMSE are almost the same as model2. We can say that Model2 is the best performing model in terms of AIC, BIC and R2 and hence we will select Model2.
 
 
@@ -301,11 +299,13 @@ model_performance(model3@objects[[1]]) %>% kable() %>% kable_styling()
 
 ```
 
-Based on model mt1, below is the prediction distribution of the test dataset, we see that the distribution is fairly split between the binary variable target
+## MODEL PERFORMANCE
+
+Based on model2, below is the prediction distribution of the test dataset, we see that the distribution is fairly split between the binary variable target
 
 ```{r}
 
-test_predict <- predict(model1, newdata=raw_test_data)
+test_predict <- predict(model2, newdata=raw_test_data)
 test_predict <- ifelse(test_predict<.5,0,1)
 raw_test_data$target <- test_predict
 ggplot(raw_test_data, aes(x=index(raw_test_data), y=target, color=factor(target))) + geom_point() +
@@ -320,7 +320,7 @@ write.csv(test_predict, "CrimePredictions.csv")
 
 
 
-## References
+## REFERENCES
 
 - [Model Selection using the glmulti and MuMIn Packages](https://www.metafor-project.org/doku.php/tips:model_selection_with_glmulti_and_mumin)
 - [Regression Model Validation ](http://www.sthda.com/english/articles/38-regression-model-validation/158-regression-model-accuracy-metrics-r-square-aic-bic-cp-and-more/)
