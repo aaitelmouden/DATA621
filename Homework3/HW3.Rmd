@@ -31,13 +31,13 @@ library(gtsummary)
 library(kableExtra)
 library(naniar)
 library(rpart)
-#library(skimr)
+library(skimr)
 library(pROC)
 library(MASS)
 library(dplyr)
 library(jtools)
 library(ggcorrplot)
-#library(glmulti)
+library(glmulti)
 library(tibble)
 library(performance)
 
@@ -132,31 +132,9 @@ raw_train_data %>%
   facet_wrap(~ key, scales = 'free', ncol = 3)
 
 ```
+\newpage
 
 ### Correlations among predictors and Variable Selection
-
-
---------------------------------------------------------------------------------------
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-COR <- cp_data %>% 
-  correlate() %>% 
-  focus(target)
-
-gt(COR)
-```
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-COR %>% 
-  mutate(rowname = factor(term, levels = term[order(target)])) %>%  # Order by correlation strength
-  ggplot(aes(x = rowname, y = target)) +
-    geom_bar(stat = "identity") +
-    ylab("Correlation with TARGET WINS") +
-    xlab("Variables") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+ ggtitle("Figure 4: Correlation Against Target Win")
-```
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -165,8 +143,7 @@ COR %>%
 #we might have to run these corrplots again after we handle the NA values
 chart.Correlation(cp_data, histograme=TRUE, method= "pearson", use="pairwise.complete.obs")
 ```
-
---------------------------------------------------------------------------------------
+\newpage
 
 **Correlation using ggcorrplot**
 
@@ -206,6 +183,8 @@ test.data <- train_data[-training.samples, ]
 <!-- td_bx <- predict(train_boxcox, train_data) -->
 <!-- ``` -->
 
+\newpage
+
 ## BUILD MODELS
 
 
@@ -234,7 +213,8 @@ As we can see, summary() returns the estimate, standard errors, z-score, and p-v
 
 The summary shows also the null deviance (the deviance just for the mean) and the residual deviance (the deviance for the model with all the predictors). There's a large difference between the 2, along with 12 degrees of freedom.
 
-**Prediction**
+\newpage
+### Prediction
 
 We will plot the ROC curve for the predictive result. ROC in logistic regression are used for determining the best cutoff value for predicting whether a new observation is a "failure" (0) or a "success" (1). the ROC curve shows graphically the tradeoff that occurs between trying to maximize the true positive rate vs. trying to minimize the false positive rate. In an ideal situation, you would have sensitivity and specificity near 100% at all cutoffs, meaning you predict perfectly in all cases. which is not the case for our data.
 
@@ -267,6 +247,8 @@ From the summ() output above, it can be seen that:
 - The AIC and the BIC of the model 2 are lower than those of the model1. In model comparison strategies, the model with the lowest AIC and BIC score is preferred.
 
 - Finally, the F-statistic p.value of the model 2 is lower than the one of the model 1. This means that the model 2 is statistically more significant compared to model 1, which is consistent to the above conclusion.
+
+\newpage
 
 ## Model 3 Using glmulti: 
 
