@@ -298,6 +298,17 @@ apply(df4, 2, BoxCoxTrans)
 
 #### Model 1: Mean full model
 
+```{r}
+
+df_lm <- df1 %>% select(-TARGET_FLAG) %>% filter(TARGET_AMT > 0)
+
+# Linear regression
+
+lm_model1 <- lm(TARGET_AMT~.,data = df_lm)
+
+summary(lm_model1)
+
+```
 
 
 
@@ -317,8 +328,18 @@ apply(df4, 2, BoxCoxTrans)
 
 #### Model 1: Mean full model
 
+```{r}
+
+df_rm <- df1 %>% select(-TARGET_AMT)
+
+# Logistic Model
+
+rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", df_rm)
+
+summary(rm_model1)
 
 
+```
 
 
 #### Model 2: BoxCox Transformation
