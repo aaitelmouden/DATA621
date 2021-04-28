@@ -28,6 +28,7 @@ library(corrr)
 library(kableExtra)
 library(rpart)
 library(gtsummary)
+library(reshape)
 
 ```
 
@@ -39,7 +40,7 @@ records representing a customer at an auto insurance company. Each record has tw
 first response variable, TARGET_FLAG, is a 1 or a 0. A “1” means that the person was in a car crash. A zero
 means that the person was not in a car crash. The second response variable is TARGET_AMT. This value is zero
 if the person did not crash their car. But if they did crash their car, this number will be a value greater than zero.
-Your objective is to build multiple linear regression and binary logistic regression models on the training data
+Your objective is to build multiple linear regression and binary logistic regression models on the df1ing data
 to predict the probability that a person will crash their car and also the amount of money it will cost if the person
 does crash their car. You can only use the variables given to you (or variables that you derive from the variables
 provided).
@@ -53,55 +54,59 @@ Below is a short description of the variables of interest in the data set:
 
 
 
-
-
-
 ```{r include=FALSE}
+
 #Import data 
-train_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework3/insurance_training_data.csv")
+df1_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework4/data/insurance_training_data.csv")
 
 
-glimpse(train_data)
+```
+
+
+```{r}
+df <- df1_data
+glimpse(df)
+
 ```
 
 
 ```{r include=FALSE}
 
 # Get rid of INDEX, TARGET_FLAG, TARGET_AMT
-train_data1 <- subset(train_data, select = -c(INDEX, TARGET_FLAG, TARGET_AMT))
+df1 <- subset(df, select = -c(INDEX))
 
 # Select money variables to clean before summary
 
-new_train_data <- train_data1[, names(train_data1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+df2 <- df1[, names(df1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
 
 # Clean using string function
 
-new_train_data <- apply(new_train_data, 2, function(y) gsub("\\$","",y))
-new_train_data <- apply(new_train_data, 2, function(y) gsub(",","",y))
-new_train_data <- apply(new_train_data, 2, as.integer)
+df2 <- apply(df2, 2, function(y) gsub("\\$","",y))
+df2 <- apply(df2, 2, function(y) gsub(",","",y))
+df2 <- apply(df2, 2, as.integer)
 
 # Combine variables
 
-train_data1 <- train_data1[, !names(train_data1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
-train_data1 <- cbind(train_data1, new_train_data)
+df1 <- df1[, !names(df1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+df1 <- cbind(df1, df2)
 
 # Select characters variables to clean before summary
 
-new_train_data <- train_data1[, names(train_data1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+df2 <- df1[, names(df1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
 
 # Clean using character function
 
-new_train_data <- apply(new_train_data, 2, function(y) gsub("z_","",y))
+df2 <- apply(df2, 2, function(y) gsub("z_","",y))
 
-train_data1 <- train_data1[,!names(train_data1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
-train_data1 <- cbind(train_data1, new_train_data)
+df1 <- df1[,!names(df1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+df1 <- cbind(df1, df2)
 
 ```
 
 
 ```{r}
 
-head(train_data1)
+head(df1)
 ```
 
 
@@ -113,39 +118,240 @@ head(train_data1)
 Figure 1 :  Summary Statistics
 \end{center}
 
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Summary table 
 
-train_data1$SEX <- factor(train_data1$SEX)
-```
-
-```{r}
-
-train_data1$PARENT1 <- factor(train_data1$PARENT1)
-train_data1$CAR_USE <- factor(train_data1$CAR_USE)
-train_data1$RED_CAR <- factor(train_data1$RED_CAR)
-train_data1$REVOKED <- factor(train_data1$REVOKED)
-train_data1$MSTATUS <- factor(train_data1$MSTATUS)
-train_data1$EDUCATION <- factor(train_data1$EDUCATION)
-train_data1$CAR_TYPE <- factor(train_data1$CAR_TYPE)
-train_data1$MSTATUS <- factor(train_data1$MSTATUS)
-train_data1$URBANICITY <- factor(train_data1$URBANICITY)
-train_data1$JOB <- factor(train_data1$JOB)
+df1$SEX <- factor(df1$SEX)
+df1$PARENT1 <- factor(df1$PARENT1)
+df1$CAR_USE <- factor(df1$CAR_USE)
+df1$RED_CAR <- factor(df1$RED_CAR)
+df1$REVOKED <- factor(df1$REVOKED)
+df1$MSTATUS <- factor(df1$MSTATUS)
+df1$EDUCATION <- factor(df1$EDUCATION)
+df1$CAR_TYPE <- factor(df1$CAR_TYPE)
+df1$MSTATUS <- factor(df1$MSTATUS)
+df1$URBANICITY <- factor(df1$URBANICITY)
+df1$JOB <- factor(df1$JOB)
 
 
 ```
+
 
 
 
 ```{r}
 
-summary(train_data1)
+# Summary table
+
+table1 <- tbl_summary(df1,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
 ```
+
+
+Visualize...
+
+
+```{r}
+
+# Histogram
+ggplot(melt(df1), aes(x=value)) + facet_wrap(~variable, scale="free") + geom_histogram(bins=50)
+
+```
+
+
+
+```{r}
+
+# Boxplot
+
+ggplot(melt(df1), aes(x=factor(variable), y=value)) + facet_wrap(~variable, scale="free") + geom_boxplot()
+
+
+```
+
 
 
 \begin{center}
 Mean (SD) Median Minimum Maximum 
 \end{center}
+
+
+
+### Outliers
+
+The following diagram shows the outliers for all the variables(numerical), both dependent and independent.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(stack(df1), aes(x = ind, y = values, fill=ind)) + 
+  geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
+  coord_cartesian(ylim = c(0, 1000)) +
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+```
+
+
+
+
+
+
+### Correlation
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Correlation between the numerical variables
+
+df3 <- df1[,!names(df1) %in% c("PARENT1","RED_CAR", "REVOKED","URBANICITY","INCOME","OLDCLAIM","HOME_VAL","BLUEBOOK","SEX","MSTATUS","EDUCATION","JOB","CAR_USE","CAR_TYPE")]
+
+a <- cor(df3, method="pearson", use="complete.obs")
+a
+
+
+```
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+corrplot(a)
+
+```
+
+
+There is a little bit of correlation between HomeKids and Kidsdriv, 
+and MVR_PTS and CLM_FREQ
+
+
+
+## Data Preparation
+
+### Missing values
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Number of missing values in each variables
+
+rev(sort(colSums(sapply(df1, is.na))))
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Total number of missing values
+
+sum(is.na(df1))
+
+```
+
+We will use mean and BoxCox transformation for data imputation,
+but we need to transform little the data for BoxCox transformation...
+BoxCox needs variable to have value greater or equal to 1
+
+
+Prepare for BoxCox imputation...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Imputing other NA variables by median before checking on minimum
+
+df1[is.na(df1$HOME_VAL),]$HOME_VAL <- median(df1[complete.cases(df1$HOME_VAL),]$HOME_VAL)
+df1[is.na(df1$YOJ),]$YOJ <- median(df1[complete.cases(df1$YOJ),]$YOJ)
+df1[is.na(df1$INCOME),]$INCOME <- median(df1[complete.cases(df1$INCOME),]$INCOME)
+df1[is.na(df1$AGE),]$AGE <- median(df1[complete.cases(df1$AGE),]$AGE)
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Looking at the minimum values in order to adjust for the BoxCox Transformation
+
+apply(df1,2,min)
+
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# BoxCox Transformation
+
+df4 <- df1 %>% 
+  filter(CAR_AGE >= 0) %>% 
+  mutate(CAR_AGE = CAR_AGE + 1, YOJ = YOJ + 1, INCOME = INCOME + 1) %>% 
+  select(TIF, BLUEBOOK, TRAVTIME, AGE, CAR_AGE, YOJ, INCOME)
+
+apply(df4, 2, BoxCoxTrans)
+
+
+```
+
+
+## Build Models
+
+
+### Multiple Linear Regression Models
+
+
+#### Model 1: Mean full model
+
+
+
+
+
+#### Model 2: BoxCox Transformation
+
+
+
+
+#### Model 3: Stepwise
+
+
+
+### Logistic Regression Models
+
+
+
+#### Model 1: Mean full model
+
+
+
+
+
+#### Model 2: BoxCox Transformation
+
+
+
+
+#### Model 3: Stepwise
+
+
+
+
+
+## Select A Model
+
+
+
+### Conclusion
+
+
+
+
+## Appendix 
+
+
+
+
+
+
+
+
+
+
 
 
 
