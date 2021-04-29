@@ -310,7 +310,11 @@ summary(lm_model1)
 
 ```
 
+```{r}
+opar <- par(mfrow = c(2,2), oma = c(0, 0, 1.1, 0))
+plot(lm_model1, las = 1)
 
+```
 
 
 #### Model 2: BoxCox Transformation
