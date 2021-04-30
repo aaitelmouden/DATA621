@@ -29,7 +29,8 @@ library(kableExtra)
 library(rpart)
 library(gtsummary)
 library(reshape)
-
+library(glmulti)
+library(pROC)
 ```
 
 
@@ -320,12 +321,15 @@ plot(lm_model1, las = 1)
 #### Model 2: BoxCox Transformation
 
 
-
-
 #### Model 3: Stepwise
 
 
+#### Model 4: GLMULTI
 
+```{r}
+
+
+```
 ### Logistic Regression Models
 
 
@@ -345,6 +349,30 @@ summary(rm_model1)
 
 ```
 
+```{r}
+hist(rm_model1$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light blue')
+```
+```{r}
+probabilities <- predict(rm_model1, df_rm, type = "response")
+predicted1.classes <- ifelse(probabilities > 0.5, 1, 0)
+df_rm$pred1.class <- predicted1.classes
+table("Predictions" = df_rm$pred1.class, "Actual" = df_rm$TARGET_FLAG)
+```
+```{r}
+confusionMatrix(as.factor(predicted1.classes), as.factor(df_rm$TARGET_FLAG))
+
+```
+
+
+```{r}
+curve <- roc(response = df_rm$TARGET_FLAG, 
+    predictor = predicted1.classes, 
+    plot = TRUE, 
+    print.auc = TRUE, 
+    main = "ROC Curve")
+
+```
+
 
 #### Model 2: BoxCox Transformation
 
@@ -352,11 +380,58 @@ summary(rm_model1)
 
 
 #### Model 3: Stepwise
+```{r}
+no_na_df <- na.omit(df_rm)
+rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", no_na_df)
+
+```
+
+```{r}
+model2 <- step(rm_model1)
+
+```
+
+```{r}
+summary(model2)
+```
+
+```{r}
+hist(model2$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light green')
+```
+```{r}
+probabilities <- predict(model2, no_na_df, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
+no_na_df$pred.class <- predicted.classes
+table("Predictions" = no_na_df$pred.class, "Actual" = no_na_df$TARGET_FLAG)
+```
+```{r}
+confusionMatrix(as.factor(predicted.classes), as.factor(no_na_df$TARGET_FLAG))
+
+```
+
+
+```{r}
+curve <- roc(response = no_na_df$TARGET_FLAG, 
+    predictor = predicted.classes, 
+    plot = TRUE, 
+    print.auc = TRUE, 
+    main = "ROC Curve")
+
+```
 
 
 
+#### Model 4: GLMULTI
+```{r}
+ model4 <- glmulti(TARGET_FLAG ~ ., data = df_rm, level = 1, method="h", crit = "aic", plotty = FALSE, fitfunction = "glm", family=binomial, maxK = 5)
+
+```
 
 
+```{r}
+print(model4)
+
+```
 ## Select A Model
 
 
