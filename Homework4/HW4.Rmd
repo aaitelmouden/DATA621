@@ -29,8 +29,9 @@ library(kableExtra)
 library(rpart)
 library(gtsummary)
 library(reshape)
-library(glmulti)
 library(pROC)
+library(randomForest)
+
 ```
 
 
@@ -318,16 +319,11 @@ plot(lm_model1, las = 1)
 ```
 
 
-#### Model 2: BoxCox Transformation
-
-
-#### Model 3: Stepwise
-
-
-#### Model 4: GLMULTI
+#### Model 2: Stepwise
 
 ```{r}
-
+lm_model2 <- step(lm_model1)
+summary(lm_model2)
 
 ```
 ### Logistic Regression Models
@@ -374,14 +370,30 @@ curve <- roc(response = df_rm$TARGET_FLAG,
 ```
 
 
-#### Model 2: BoxCox Transformation
+#### Model 2: Random forest
+```{r}
+df_rf <- subset(df_rm, select= -c(pred1.class))
 
+trainIndex <- createDataPartition(df_rf$TARGET_FLAG, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+rf_train <- df_rf[ trainIndex,]
+rf_test  <- df_rf[-trainIndex,]
+
+rf <- randomForest(factor(TARGET_FLAG) ~ ., data = rf_train, na.action = na.omit)
+rf
+varImpPlot(rf)
+```
+```{r}
+test_rf <- predict(rf, rf_test)
+confusionMatrix(test_rf, factor(rf_test$TARGET_FLAG), positive = '1')
+```
 
 
 
 #### Model 3: Stepwise
 ```{r}
-no_na_df <- na.omit(df_rm)
+no_na_df <- na.omit(rf_train)
 rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", no_na_df)
 
 ```
@@ -399,19 +411,19 @@ summary(model2)
 hist(model2$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light green')
 ```
 ```{r}
-probabilities <- predict(model2, no_na_df, type = "response")
+probabilities <- predict(model2, rf_test, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
-no_na_df$pred.class <- predicted.classes
-table("Predictions" = no_na_df$pred.class, "Actual" = no_na_df$TARGET_FLAG)
+rf_test$pred.class <- predicted.classes
+table("Predictions" = rf_test$pred.class, "Actual" = rf_test$TARGET_FLAG)
 ```
 ```{r}
-confusionMatrix(as.factor(predicted.classes), as.factor(no_na_df$TARGET_FLAG))
+confusionMatrix(as.factor(predicted.classes), as.factor(rf_test$TARGET_FLAG), positive = '1')
 
 ```
 
 
 ```{r}
-curve <- roc(response = no_na_df$TARGET_FLAG, 
+curve <- roc(response = rf_test$TARGET_FLAG, 
     predictor = predicted.classes, 
     plot = TRUE, 
     print.auc = TRUE, 
@@ -421,28 +433,65 @@ curve <- roc(response = no_na_df$TARGET_FLAG,
 
 
 
-#### Model 4: GLMULTI
-```{r}
- model4 <- glmulti(TARGET_FLAG ~ ., data = df_rm, level = 1, method="h", crit = "aic", plotty = FALSE, fitfunction = "glm", family=binomial, maxK = 5)
-
-```
-
-
-```{r}
-print(model4)
-
-```
 ## Select A Model
+We will use the Stepwise regression models for both questions, as the logistic stepwise model was the most accurate, had the highest sensitivity, and was the least complex. The stepwise linear model also had a higher adjusted R^2 value, and a smaller p-value. Thus, these should be our best bet in imputing the target values in the evaluation dataset.
+
+```{r}
+eval <- read_csv('https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework4/data/insurance-evaluation-data.csv')
+
+# Get rid of INDEX, TARGET_FLAG, TARGET_AMT
+eval <- subset(eval, select = -c(INDEX))
+
+# Select money variables to clean before summary
+
+eval2 <- eval[, names(eval) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+
+# Clean using string function
+
+eval2 <- apply(eval2, 2, function(y) gsub("\\$","",y))
+eval2 <- apply(eval2, 2, function(y) gsub(",","",y))
+eval2 <- apply(eval2, 2, as.integer)
+
+# Combine variables
+
+eval1 <- eval[, !names(eval) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+eval1 <- cbind(eval1, eval2)
+
+# Select characters variables to clean before summary
+
+eval2 <- eval1[, names(eval1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+
+# Clean using character function
+
+eval2 <- apply(eval2, 2, function(y) gsub("z_","",y))
+
+eval1 <- eval1[,!names(eval1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+eval1 <- cbind(eval1, eval2)
+head(eval1)
+```
 
 
+```{r}
+probabilities <- predict(model2, eval1, type = "response")
+preds <- ifelse(probabilities > 0.5, 1, 0)
 
+eval1$TARGET_FLAG <- preds
+eval1
+
+```
+
+```{r}
+amt <- ifelse(eval1$TARGET_FLAG == 1, predict(lm_model2, eval1, type = "response"), 0)
+eval1$TARGET_AMT <- amt
+
+eval1
+```
 ### Conclusion
 
 
 
 
 ## Appendix 
-
 
 
 
