@@ -3,10 +3,10 @@ title: "Multiple linear regression and binary logistic regression models"
 author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
 date: "4/13/2021"
 output:
-  html_document:
-    df_print: paged
   pdf_document:
     latex_engine: xelatex
+  html_document:
+    df_print: paged
 ---
 
 ```{r include=FALSE}
@@ -53,9 +53,6 @@ provided).
 Below is a short description of the variables of interest in the data set:
 
 
-
-
-
 ```{r include=FALSE}
 
 #Import data 
@@ -65,12 +62,15 @@ df1_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/mas
 ```
 
 
-```{r}
+```{r include=FALSE}
 df <- df1_data
 glimpse(df)
 
 ```
 
+We need to make some cleaning of data such as removing the index, and special
+characters on certain variables.
+Below is the head of the data...
 
 ```{r include=FALSE}
 
@@ -106,7 +106,7 @@ df1 <- cbind(df1, df2)
 ```
 
 
-```{r}
+```{r include=FALSE}
 
 head(df1)
 ```
@@ -124,6 +124,8 @@ Figure 1 :  Summary Statistics
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
+# Factor
+
 df1$SEX <- factor(df1$SEX)
 df1$PARENT1 <- factor(df1$PARENT1)
 df1$CAR_USE <- factor(df1$CAR_USE)
@@ -140,9 +142,9 @@ df1$JOB <- factor(df1$JOB)
 ```
 
 
+### Summary table
 
-
-```{r}
+```{r include=FALSE}
 
 # Summary table
 
@@ -152,10 +154,10 @@ table1
 ```
 
 
-Visualize...
+### Visualization 
 
 
-```{r}
+```{r include=FALSE}
 
 # Histogram
 ggplot(melt(df1), aes(x=value)) + facet_wrap(~variable, scale="free") + geom_histogram(bins=50)
@@ -164,7 +166,7 @@ ggplot(melt(df1), aes(x=value)) + facet_wrap(~variable, scale="free") + geom_his
 
 
 
-```{r}
+```{r include=FALSE}
 
 # Boxplot
 
@@ -187,6 +189,8 @@ The following diagram shows the outliers for all the variables(numerical), both 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
+# Outliers plot
+
 ggplot(stack(df1), aes(x = ind, y = values, fill=ind)) + 
   geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
   coord_cartesian(ylim = c(0, 1000)) +
@@ -201,6 +205,8 @@ ggplot(stack(df1), aes(x = ind, y = values, fill=ind)) +
 
 ### Correlation
 
+Below is the correlation between the numerical variables...
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 # Correlation between the numerical variables
@@ -214,6 +220,7 @@ a
 ```
 
 
+Here's the correlation matrix visualization...
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -232,9 +239,11 @@ and MVR_PTS and CLM_FREQ
 
 ### Missing values
 
+Let explore the number of missing values in each variable
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
-# Number of missing values in each variables
+# Number of missing values in each variable
 
 rev(sort(colSums(sapply(df1, is.na))))
 
@@ -252,7 +261,8 @@ We will use mean and BoxCox transformation for data imputation,
 but we need to transform little the data for BoxCox transformation...
 BoxCox needs variable to have value greater or equal to 1
 
-
+### BoxCox iputation prep
+ 
 Prepare for BoxCox imputation...
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -300,7 +310,11 @@ apply(df4, 2, BoxCoxTrans)
 
 #### Model 1: Mean full model
 
-```{r}
+Building the first model using all the variables...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# LM 1
 
 df_lm <- df1 %>% select(-TARGET_FLAG) %>% filter(TARGET_AMT > 0)
 
@@ -312,7 +326,13 @@ summary(lm_model1)
 
 ```
 
-```{r}
+
+Visualization...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Visualization
+
 opar <- par(mfrow = c(2,2), oma = c(0, 0, 1.1, 0))
 plot(lm_model1, las = 1)
 
@@ -321,18 +341,48 @@ plot(lm_model1, las = 1)
 
 #### Model 2: Stepwise
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# LM 2
+
 lm_model2 <- step(lm_model1)
 summary(lm_model2)
 
 ```
-### Logistic Regression Models
 
+#### Model 3: BoxCox imputation
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# LM 3
+
+lm_model3 <- lm(TARGET_AMT ~ KIDSDRIV + AGE + HOMEKIDS + I(YOJ^1.6) + PARENT1 + I(TRAVTIME^0.7) + CAR_USE + I(TIF^0.2) + RED_CAR + CLM_FREQ + REVOKED + MVR_PTS + I(CAR_AGE^0.5) + I(INCOME^0.4) + HOME_VAL + I(BLUEBOOK^0.5) + OLDCLAIM + MSTATUS + SEX + EDUCATION + JOB + CAR_TYPE + URBANICITY, data=df_lm)
+summary(lm_model3)
+
+
+```
+
+
+Residual analysis...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+par(mfrow=c(2,2))
+plot(lm_model3)
+
+```
+
+
+### Logistic Regression Models
 
 
 #### Model 1: Mean full model
 
-```{r}
+Let build the first full model for logistiv regression...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Logistic M 1
 
 df_rm <- df1 %>% select(-TARGET_AMT)
 
@@ -345,22 +395,29 @@ summary(rm_model1)
 
 ```
 
-```{r}
+
+Confusion matrix and the curve...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 hist(rm_model1$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light blue')
 ```
+
 ```{r}
 probabilities <- predict(rm_model1, df_rm, type = "response")
 predicted1.classes <- ifelse(probabilities > 0.5, 1, 0)
 df_rm$pred1.class <- predicted1.classes
 table("Predictions" = df_rm$pred1.class, "Actual" = df_rm$TARGET_FLAG)
 ```
-```{r}
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 confusionMatrix(as.factor(predicted1.classes), as.factor(df_rm$TARGET_FLAG))
 
 ```
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 curve <- roc(response = df_rm$TARGET_FLAG, 
     predictor = predicted1.classes, 
     plot = TRUE, 
@@ -371,7 +428,10 @@ curve <- roc(response = df_rm$TARGET_FLAG,
 
 
 #### Model 2: Random forest
-```{r}
+
+Logistic regression with Random forest...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 df_rf <- subset(df_rm, select= -c(pred1.class))
 
 trainIndex <- createDataPartition(df_rf$TARGET_FLAG, p = .8, 
@@ -384,7 +444,10 @@ rf <- randomForest(factor(TARGET_FLAG) ~ ., data = rf_train, na.action = na.omit
 rf
 varImpPlot(rf)
 ```
-```{r}
+
+Confusion matrix...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 test_rf <- predict(rf, rf_test)
 confusionMatrix(test_rf, factor(rf_test$TARGET_FLAG), positive = '1')
 ```
@@ -392,37 +455,51 @@ confusionMatrix(test_rf, factor(rf_test$TARGET_FLAG), positive = '1')
 
 
 #### Model 3: Stepwise
-```{r}
+
+The stepwise model...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 no_na_df <- na.omit(rf_train)
 rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", no_na_df)
 
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 model2 <- step(rm_model1)
 
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 summary(model2)
 ```
 
-```{r}
+Confusion matrix and the curve...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ 
 hist(model2$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light green')
 ```
-```{r}
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 probabilities <- predict(model2, rf_test, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
 rf_test$pred.class <- predicted.classes
 table("Predictions" = rf_test$pred.class, "Actual" = rf_test$TARGET_FLAG)
 ```
-```{r}
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 confusionMatrix(as.factor(predicted.classes), as.factor(rf_test$TARGET_FLAG), positive = '1')
 
 ```
 
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 curve <- roc(response = rf_test$TARGET_FLAG, 
     predictor = predicted.classes, 
     plot = TRUE, 
@@ -433,10 +510,12 @@ curve <- roc(response = rf_test$TARGET_FLAG,
 
 
 
-## Select A Model
+## Select Models
+
 We will use the Stepwise regression models for both questions, as the logistic stepwise model was the most accurate, had the highest sensitivity, and was the least complex. The stepwise linear model also had a higher adjusted R^2 value, and a smaller p-value. Thus, these should be our best bet in imputing the target values in the evaluation dataset.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
 eval <- read_csv('https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework4/data/insurance-evaluation-data.csv')
 
 # Get rid of INDEX, TARGET_FLAG, TARGET_AMT
@@ -470,31 +549,340 @@ eval1 <- cbind(eval1, eval2)
 head(eval1)
 ```
 
+### Does the person crash the car?
 
-```{r}
-probabilities <- predict(model2, eval1, type = "response")
+The following shows if a person crash his or her car...
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+eval1[is.na(eval1$INCOME),]$INCOME <- median(eval1[complete.cases(eval1$INCOME),]$INCOME)
+eval1[is.na(eval1$HOME_VAL),]$HOME_VAL <- 0
+
+probabilities <- predict(model2, eval1[, -1], type = "response")
 preds <- ifelse(probabilities > 0.5, 1, 0)
 
-eval1$TARGET_FLAG <- preds
-eval1
+preds[is.na(preds)] <-0
+preds
 
 ```
 
-```{r}
-amt <- ifelse(eval1$TARGET_FLAG == 1, predict(lm_model2, eval1, type = "response"), 0)
-eval1$TARGET_AMT <- amt
 
-eval1
+### What's the pay off?
+
+
+The following shows the pay off for the person who has a crash car...
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+amt <- ifelse(preds == 1, predict(lm_model2, eval1[,-1], type = "response"), 0)
+amt
+
 ```
-### Conclusion
-
-
 
 
 ## Appendix 
 
+```{r set up, include = FALSE}
+knitr::opts_chunk$set(cache=TRUE)
 
 
+
+library(corrplot)
+library(tidyverse)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(mice)
+library(gt)
+library(caret)
+library(bnstruct)
+library(VIM)
+library(corrr)
+library(kableExtra)
+library(rpart)
+library(gtsummary)
+library(reshape)
+library(pROC)
+library(randomForest)
+
+
+
+#Import data 
+df1_data <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework4/data/insurance_training_data.csv")
+
+
+df <- df1_data
+glimpse(df)
+
+
+
+# Get rid of INDEX, TARGET_FLAG, TARGET_AMT
+df1 <- subset(df, select = -c(INDEX))
+
+# Select money variables to clean before summary
+
+df2 <- df1[, names(df1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+
+# Clean using string function
+
+df2 <- apply(df2, 2, function(y) gsub("\\$","",y))
+df2 <- apply(df2, 2, function(y) gsub(",","",y))
+df2 <- apply(df2, 2, as.integer)
+
+# Combine variables
+
+df1 <- df1[, !names(df1) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+df1 <- cbind(df1, df2)
+
+# Select characters variables to clean before summary
+
+df2 <- df1[, names(df1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+
+# Clean using character function
+
+df2 <- apply(df2, 2, function(y) gsub("z_","",y))
+
+df1 <- df1[,!names(df1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+df1 <- cbind(df1, df2)
+
+# Factor
+
+df1$SEX <- factor(df1$SEX)
+df1$PARENT1 <- factor(df1$PARENT1)
+df1$CAR_USE <- factor(df1$CAR_USE)
+df1$RED_CAR <- factor(df1$RED_CAR)
+df1$REVOKED <- factor(df1$REVOKED)
+df1$MSTATUS <- factor(df1$MSTATUS)
+df1$EDUCATION <- factor(df1$EDUCATION)
+df1$CAR_TYPE <- factor(df1$CAR_TYPE)
+df1$MSTATUS <- factor(df1$MSTATUS)
+df1$URBANICITY <- factor(df1$URBANICITY)
+df1$JOB <- factor(df1$JOB)
+
+# Summary table
+
+table1 <- tbl_summary(df1,
+          statistic = list(all_continuous() ~ "{mean} ({sd}) {median} {min} {max}"), missing = "no") 
+table1
+
+# Boxplot
+
+ggplot(melt(df1), aes(x=factor(variable), y=value)) + facet_wrap(~variable, scale="free") + geom_boxplot()
+
+# Histogram
+ggplot(melt(df1), aes(x=value)) + facet_wrap(~variable, scale="free") + geom_histogram(bins=50)
+
+
+
+# Outliers plot
+
+ggplot(stack(df1), aes(x = ind, y = values, fill=ind)) + 
+  geom_boxplot(outlier.colour = "red",  outlier.alpha=.4) +
+  coord_cartesian(ylim = c(0, 1000)) +
+  theme_classic()+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) 
+
+# Correlation between the numerical variables
+
+df3 <- df1[,!names(df1) %in% c("PARENT1","RED_CAR", "REVOKED","URBANICITY","INCOME","OLDCLAIM","HOME_VAL","BLUEBOOK","SEX","MSTATUS","EDUCATION","JOB","CAR_USE","CAR_TYPE")]
+
+a <- cor(df3, method="pearson", use="complete.obs")
+a
+
+corrplot(a)
+
+# Imputing other NA variables by median before checking on minimum
+
+df1[is.na(df1$HOME_VAL),]$HOME_VAL <- median(df1[complete.cases(df1$HOME_VAL),]$HOME_VAL)
+df1[is.na(df1$YOJ),]$YOJ <- median(df1[complete.cases(df1$YOJ),]$YOJ)
+df1[is.na(df1$INCOME),]$INCOME <- median(df1[complete.cases(df1$INCOME),]$INCOME)
+df1[is.na(df1$AGE),]$AGE <- median(df1[complete.cases(df1$AGE),]$AGE)
+
+
+
+# Looking at the minimum values in order to adjust for the BoxCox Transformation
+
+apply(df1,2,min)
+
+# BoxCox Transformation
+
+df4 <- df1 %>% 
+  filter(CAR_AGE >= 0) %>% 
+  mutate(CAR_AGE = CAR_AGE + 1, YOJ = YOJ + 1, INCOME = INCOME + 1) %>% 
+  select(TIF, BLUEBOOK, TRAVTIME, AGE, CAR_AGE, YOJ, INCOME)
+
+apply(df4, 2, BoxCoxTrans)
+
+# LM 1
+
+df_lm <- df1 %>% select(-TARGET_FLAG) %>% filter(TARGET_AMT > 0)
+
+# Linear regression
+
+lm_model1 <- lm(TARGET_AMT~.,data = df_lm)
+
+summary(lm_model1)
+
+
+# Visualization
+
+opar <- par(mfrow = c(2,2), oma = c(0, 0, 1.1, 0))
+plot(lm_model1, las = 1)
+
+# LM 2
+
+lm_model2 <- step(lm_model1)
+summary(lm_model2)
+
+
+# LM 3
+
+lm_model3 <- lm(TARGET_AMT ~ KIDSDRIV + AGE + HOMEKIDS + I(YOJ^1.6) + PARENT1 + I(TRAVTIME^0.7) + CAR_USE + I(TIF^0.2) + RED_CAR + CLM_FREQ + REVOKED + MVR_PTS + I(CAR_AGE^0.5) + I(INCOME^0.4) + HOME_VAL + I(BLUEBOOK^0.5) + OLDCLAIM + MSTATUS + SEX + EDUCATION + JOB + CAR_TYPE + URBANICITY, data=df_lm)
+summary(lm_model3)
+
+# Logistic Model
+
+# Logistic M 1
+
+df_rm <- df1 %>% select(-TARGET_AMT)
+
+
+rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", df_rm)
+
+summary(rm_model1)
+
+
+# Logistic M 2
+
+hist(rm_model1$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light blue')
+
+probabilities <- predict(rm_model1, df_rm, type = "response")
+predicted1.classes <- ifelse(probabilities > 0.5, 1, 0)
+df_rm$pred1.class <- predicted1.classes
+table("Predictions" = df_rm$pred1.class, "Actual" = df_rm$TARGET_FLAG)
+
+
+confusionMatrix(as.factor(predicted1.classes), as.factor(df_rm$TARGET_FLAG))
+
+curve <- roc(response = df_rm$TARGET_FLAG, 
+    predictor = predicted1.classes, 
+    plot = TRUE, 
+    print.auc = TRUE, 
+    main = "ROC Curve")
+
+
+df_rf <- subset(df_rm, select= -c(pred1.class))
+
+trainIndex <- createDataPartition(df_rf$TARGET_FLAG, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+rf_train <- df_rf[ trainIndex,]
+rf_test  <- df_rf[-trainIndex,]
+
+rf <- randomForest(factor(TARGET_FLAG) ~ ., data = rf_train, na.action = na.omit)
+rf
+varImpPlot(rf)
+
+test_rf <- predict(rf, rf_test)
+confusionMatrix(test_rf, factor(rf_test$TARGET_FLAG), positive = '1')
+
+
+# Logistic M 3
+
+no_na_df <- na.omit(rf_train)
+rm_model1 <- glm(TARGET_FLAG ~ ., family="binomial", no_na_df)
+
+
+model2 <- step(rm_model1)
+
+summary(model2)
+
+
+# Confusion matrix and the curve...
+
+ 
+hist(model2$fitted.values,main = " Histogram ",xlab = "Probability of Crashing", col = 'light green')
+
+
+probabilities <- predict(model2, rf_test, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
+rf_test$pred.class <- predicted.classes
+table("Predictions" = rf_test$pred.class, "Actual" = rf_test$TARGET_FLAG)
+
+
+confusionMatrix(as.factor(predicted.classes), as.factor(rf_test$TARGET_FLAG), positive = '1')
+
+
+curve <- roc(response = rf_test$TARGET_FLAG, 
+    predictor = predicted.classes, 
+    plot = TRUE, 
+    print.auc = TRUE, 
+    main = "ROC Curve")
+
+
+# Select models
+
+eval <- read_csv('https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Homework4/data/insurance-evaluation-data.csv')
+
+# Get rid of INDEX, TARGET_FLAG, TARGET_AMT
+eval <- subset(eval, select = -c(INDEX))
+
+# Select money variables to clean before summary
+
+eval2 <- eval[, names(eval) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+
+# Clean using string function
+
+eval2 <- apply(eval2, 2, function(y) gsub("\\$","",y))
+eval2 <- apply(eval2, 2, function(y) gsub(",","",y))
+eval2 <- apply(eval2, 2, as.integer)
+
+# Combine variables
+
+eval1 <- eval[, !names(eval) %in% c("INCOME", "OLDCLAIM", "HOME_VAL", "BLUEBOOK")]
+eval1 <- cbind(eval1, eval2)
+
+# Select characters variables to clean before summary
+
+eval2 <- eval1[, names(eval1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+
+# Clean using character function
+
+eval2 <- apply(eval2, 2, function(y) gsub("z_","",y))
+
+eval1 <- eval1[,!names(eval1) %in% c("MSTATUS", "SEX", "EDUCATION", "JOB", "CAR_TYPE", "URBANICITY")]
+eval1 <- cbind(eval1, eval2)
+head(eval1)
+
+
+### Does the person crash the car?
+
+
+eval1[is.na(eval1$INCOME),]$INCOME <- median(eval1[complete.cases(eval1$INCOME),]$INCOME)
+eval1[is.na(eval1$HOME_VAL),]$HOME_VAL <- 0
+
+probabilities <- predict(model2, eval1[, -1], type = "response")
+preds <- ifelse(probabilities > 0.5, 1, 0)
+
+preds[is.na(preds)] <-0
+preds
+
+
+
+### What's the pay off?
+
+
+amt <- ifelse(preds == 1, predict(lm_model2, eval1[,-1], type = "response"), 0)
+amt
+
+```
+
+
+
+
+### References
+
+- [Regression Model Validation ](http://www.sthda.com/english/articles/38-regression-model-validation/158-regression-model-accuracy-metrics-r-square-aic-bic-cp-and-more/)
+- [Binary Logistic Regression](https://towardsdatascience.com/implementing-binary-logistic-regression-in-r-7d802a9d98fe)
+- [What are pseudo R-squareds?] (https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-what-are-pseudo-r-squareds/)
 
 
 
