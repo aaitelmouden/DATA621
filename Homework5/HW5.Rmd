@@ -31,7 +31,8 @@ library(gtsummary)
 library(reshape)
 library(pROC)
 library(randomForest)
-
+library(pscl)
+library(skimr)
 ```
 
 
@@ -64,8 +65,8 @@ skim(train_data)
 ```{r}
 # remove index column as it is not needed
 train_data <- train_data %>% 
-  dplyr::select(-"INDEX")
-data_test <- data_test %>% 
+  dplyr::select(-"ï..INDEX")
+data_test <- test_data %>% 
   dplyr::select(-"IN")
 ```
 
@@ -195,7 +196,7 @@ meth <- init$method
 predM <- init$predictorMatrix
 predM[, c("TARGET")] <- 0 #this code will remove the variable as a predictor but still will be imputed
 train_data_impute <- mice(train_data, method = 'rf', predictorMatrix=predM)
-train_data_imputed <- complete(train_data_impute)
+train_data_imputed <-mice:: complete(train_data_impute)
 print(paste0("Missing value after imputation: ", sum(is.na(train_data_imputed))))
 ```
 
@@ -231,9 +232,7 @@ summary(model2)
 ```{r}
 print('Goodness of Fit Test:')
 ```
-```{r}
 
-```
 
 ```{r}
 with(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
@@ -312,7 +311,7 @@ meth <- init$method
 predM <- init$predictorMatrix
 predM[, c("TARGET")] <- 0 #this code will remove the variable as a predictor but still will be imputed
 data_test_impute <- mice(data_test, method = 'rf', predictorMatrix=predM)
-data_test_imputed <- complete(data_test_impute)
+data_test_imputed <- mice::complete(data_test_impute)
 print(paste0("Missing value after imputation: ", sum(is.na(data_test_imputed))))
 ```
 
@@ -329,3 +328,237 @@ ggplot(data_pred, aes(x=TARGET)) + geom_bar(fill="steelblue") + theme_minimal() 
 write.csv(test_predict, "WinePredictions.csv")
 ```
 
+
+## Appendix
+
+```{r set up, include = FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+
+library(corrplot)
+library(tidyverse)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(mice)
+library(gt)
+library(caret)
+library(bnstruct)
+library(VIM)
+library(corrr)
+library(kableExtra)
+library(rpart)
+library(gtsummary)
+library(reshape)
+library(pROC)
+library(randomForest)
+library(pscl)
+library(skimr)
+
+## Data Exploration
+
+train_data <- read.csv("./data/wine-training-data.csv", header = TRUE)
+test_data <- read.csv("./data/wine-evaluation-data.csv", header = TRUE)
+
+glimpse(train_data)
+
+
+
+skim(train_data)
+
+# remove index column as it is not needed
+train_data <- train_data %>% 
+  dplyr::select(-"ï..INDEX")
+data_test <- test_data %>% 
+  dplyr::select(-"IN")
+
+
+## Visualization
+
+
+# histogram
+train_data %>% 
+  dplyr::select(-c("AcidIndex", "STARS", "TARGET", "LabelAppeal")) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+  facet_wrap(~key, scale = "free",  ncol = 3) +
+  geom_histogram(binwidth = function(x) 2 * IQR(x) / (length(x)^(1/3)), fill="blue") +
+  theme_minimal()
+
+train_data %>% 
+  ggplot(aes(x=TARGET)) + 
+  geom_histogram(fill='blue')
+
+
+# boxplot
+p1 <- train_data %>% 
+  dplyr::select(-c("TotalSulfurDioxide", "FreeSulfurDioxide", "ResidualSugar")) %>% 
+  gather(na.rm = TRUE) %>% 
+  ggplot(aes(factor(key), value)) +
+  geom_boxplot(outlier.colour = "#e281cf", outlier.shape = 1,  color = "#5aa1ed") +
+  coord_flip() +
+  labs(title = "Boxplot of Chemical Properties of Wine", x = "Chemical Properties", y = "Values") +
+  theme_minimal()
+p2 <- train_data %>% 
+  dplyr::select(c("TotalSulfurDioxide", "FreeSulfurDioxide", "ResidualSugar")) %>% 
+  gather(na.rm = TRUE) %>% 
+  ggplot(aes(factor(key), value)) +
+  geom_boxplot(outlier.colour = "#e281cf", outlier.shape = 1, color = "#5aa1ed") +
+  #labs(title = "Boxplot of Chemical Properties of Wine", x = "Chemical Properties", y = "Values") +
+  theme_minimal()
+ggarrange(p1, p2)
+
+# barchart
+p3 <- train_data %>% 
+  dplyr::select(TARGET, STARS) %>% 
+  mutate(STARS = as.factor(STARS),
+         TARGET = as.factor(TARGET)) %>% 
+  ggplot(aes(STARS)) +
+  geom_bar(aes(fill = TARGET)) +
+  theme_minimal()
+p4 <- train_data %>%
+  dplyr::select(TARGET, LabelAppeal) %>% 
+  mutate(STARS = as.factor(LabelAppeal),
+         TARGET = as.factor(TARGET)) %>% 
+  ggplot(aes(LabelAppeal)) +
+  geom_bar(aes(fill = TARGET)) +
+  theme_minimal()
+p5 <- train_data %>% 
+  dplyr::select(TARGET, AcidIndex) %>% 
+  mutate(STARS = as.factor(AcidIndex),
+         TARGET = as.factor(TARGET)) %>% 
+  ggplot(aes(AcidIndex)) +
+  geom_bar(aes(fill = TARGET)) +
+  theme_minimal()
+ggarrange(p5, ggarrange(p3, p4, ncol = 2, nrow = 1, legend = "none"), nrow = 2, common.legend = TRUE)
+
+# top correlation
+wine_train_corr <- train_data %>% 
+  drop_na() %>% 
+  cor()
+kable(sort(wine_train_corr[,1], decreasing = T), col.names = c("Correlation")) %>% 
+  kable_styling(full_width = F)
+
+# correlation plot
+corrplot(wine_train_corr, 
+         method = "number", 
+         type = "lower",
+         col = brewer.pal(n = 15, name = "Reds"),
+         number.cex = .7, tl.cex = .7,
+         tl.col = "black", tl.srt = 45)
+
+
+# missing value columns
+aggr(train_data, 
+     sortVars=TRUE, 
+     labels=names(train_data), 
+     cex.axis=.5, 
+     bars = FALSE, 
+     col = c("white", "#E46726"),
+     combined = TRUE,
+     #border = NA,
+     ylab = "Missing Values")
+
+# imputating train data
+init <- mice(train_data)
+meth <- init$method
+predM <- init$predictorMatrix
+predM[, c("TARGET")] <- 0 #this code will remove the variable as a predictor but still will be imputed
+train_data_impute <- mice(train_data, method = 'rf', predictorMatrix=predM)
+train_data_imputed <-mice:: complete(train_data_impute)
+print(paste0("Missing value after imputation: ", sum(is.na(train_data_imputed))))
+
+
+## Model Building
+
+### Model 1: Poisson (Raw data)
+
+
+# poisson model with the missing values
+model1 <- glm(TARGET ~ ., family = poisson, train_data)
+summary(model1)
+
+print('Goodness of Fit Test:')
+
+
+with(model1, cbind(res.deviance = deviance, df = df.residual,  p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+
+
+### Model 2: Poisson (Imputed Data)
+
+
+# poisson model with the imputed values
+model2 <- glm(TARGET ~ ., family = poisson, train_data_imputed)
+summary(model2)
+
+
+
+print('Goodness of Fit Test:')
+
+
+with(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+
+
+
+### Model 3: Quasipoisson Model
+
+
+# poisson model with the imputed values
+model3 <- glm(TARGET ~ ., family = quasipoisson(link='log'), train_data_imputed)
+summary(model3)
+
+print('Goodness of Fit Test:')
+
+with(model3, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+
+
+### Model 4: Zero Inflated
+
+model4 <- zeroinfl(TARGET ~., train_data_imputed, dist = 'poisson')
+summary(model4)
+
+model4b <- zeroinfl(TARGET ~ . - FixedAcidity - Density, train_data_imputed, dist = 'poisson')
+summary(model4b)
+
+
+## Model Selection
+
+pred_train <- data.frame(TARGET=train_data_imputed$TARGET, 
+                         model2=model2$fitted.values, 
+                         model3=model3$fitted.values, 
+                         model4b=model4b$fitted.values)
+pred_train <- round(pred_train, 0)
+colnames(pred_train) <- c("TARGET","Poisson (Imputed)" ,"Quasipoisson Model", "Zero Inflated")
+pred_train %>%
+  gather() %>% 
+  ggplot(aes(value)) +
+  facet_wrap(~key, scale = "free",  ncol = 4) +
+  geom_bar(fill="blue") +
+  theme_minimal() + labs(x="Cases Bought", y = "Count", title = "Prediction Histogram")
+
+model2_fitted.values <- factor(round(model2$fitted.values),levels=rev(0:9))
+model3_fitted.values <- factor(round(model3$fitted.values),levels=rev(0:9))
+model4b_fitted.values <- factor(round(model4b$fitted.values),levels=rev(0:9))
+m2_cfm <- confusionMatrix(model2_fitted.values, factor(train_data_imputed$TARGET,levels=rev(0:9)))
+m3_cfm <- confusionMatrix(model3_fitted.values, factor(train_data_imputed$TARGET,levels=rev(0:9)))
+m4_cfm <- confusionMatrix(model4b_fitted.values, factor(train_data_imputed$TARGET,levels=rev(0:9)))
+models_sum <- data.frame(m2_cfm$overall, m3_cfm$overall, m4_cfm$overall)
+colnames(models_sum) <- c("Poisson (Imputed)" ,"Quasipoisson Model", "Zero Inflated")
+round(models_sum, 2)
+
+init <- mice(data_test)
+meth <- init$method
+predM <- init$predictorMatrix
+predM[, c("TARGET")] <- 0 #this code will remove the variable as a predictor but still will be imputed
+data_test_impute <- mice(data_test, method = 'rf', predictorMatrix=predM)
+data_test_imputed <- mice::complete(data_test_impute)
+print(paste0("Missing value after imputation: ", sum(is.na(data_test_imputed))))
+
+test_predict <- predict(model4b, newdata=data_test_imputed)
+test_predict <- round(test_predict,0)
+data_pred <- data.frame(TARGET=test_predict)
+ggplot(data_pred, aes(x=TARGET)) + geom_bar(fill="steelblue") + theme_minimal() +
+  labs(y="Count", title = "Prediction: Zero Inflated Model (Model4b)") + 
+    scale_x_discrete(name = "Cases Bought", limits=c("1","2","3","4", "5", "6", "7", "8"))
+
+write.csv(test_predict, "WinePredictions.csv")
+
+```
