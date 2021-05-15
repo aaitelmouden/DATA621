@@ -156,7 +156,7 @@ kable(sort(wine_train_corr[,1], decreasing = T), col.names = c("Correlation")) %
   kable_styling(full_width = F)
 ```
 
-The plot below represent the correclation table and plot, and we can see that STARS and LabelAppeal are most positively correlated variables with the response variable. We expected this because our variable description mentions these variable’s theoretical affect are higher than other variables. Also, we some mild negative correlation between the response variable and AcidIndex variable.
+The plot below represent the correlation table and plot, and we can see that STARS and LabelAppeal are most positively correlated variables with the response variable. We expected this because our variable description mentions these variable’s theoretical affect are higher than other variables. Also, we some mild negative correlation between the response variable and AcidIndex variable.
 
 ```{r}
 library(corrplot)
@@ -244,7 +244,7 @@ Given what we observed when looking at the distribution of TARGET, we should exp
 
 ### Model 3: Quasipoisson Model
 
-We try a quasipoisson model to account for nay overdispersion and to see if the results change significantly. As seen in the summary below, the models are nearly identical.
+We try a quasipoisson model to account for any overdispersion and to see if the results change significantly. As seen in the summary below, the models are nearly identical.
 
 ```{r}
 # poisson model with the imputed values
