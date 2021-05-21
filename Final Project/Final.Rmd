@@ -233,3 +233,66 @@ model3
 ```{r}
 varImpPlot(model3)
 ```
+
+## Test Models
+
+### Investigate Test Data
+
+Repeating the same data cleaning steps for the test data as the training data.
+```{r}
+skim(test)
+```
+
+```{r}
+test$title <- gsub('(.*, )|(\\..*)', '', test$Name)
+```
+
+```{r}
+table(test$Sex, test$title)
+```
+
+```{r}
+military_title <-c('Capt', 'Col', 'Major')
+royal_title <-c('the Countess', 'Jonkheer', 'Sir', 'Lady')
+the_rest <- c('Dr', 'Don', 'Rev', 'Dona')
+the_master <- c('Master')
+
+test$title[test$title=='Mlle']<-'Miss'
+test$title[test$title=='Ms']<- 'Miss'
+test$title[test$title=='Mme']<-'Mrs'
+test$title[test$title %in% the_master] <- 'Master'
+test$title[test$title %in% military_title] <- 'Military'
+test$title[test$title %in% royal_title] <- 'Nobility'
+test$title[test$title %in% the_rest] <- 'Other'
+```
+
+```{r}
+table(test$Sex, test$title)
+```
+
+```{r}
+test$title <- as.factor(test$title)
+```
+
+
+Checking for Embarked missing passengers, which there are none.
+```{r}
+test$Embarked[test$Embarked == ""] <- NA
+test[(which(is.na(test$Embarked))), 1]
+```
+
+
+Cabin has too many missing values to immpute or fill, so we will drop the Cabin column from the training data set.
+```{r}
+test2 <- subset(test, select = -c(Cabin, PassengerId))
+```
+
+```{r}
+aggr(test2, col=c('navyblue','yellow'),
+numbers=TRUE, sortVars=TRUE,
+labels=names(test2), cex.axis=.7,
+gap=3, ylab=c("Missing data","Pattern"))
+
+```
+
+Interesting, Fare is missing values as well as Age. In the training data set, only Age had a significant amount of missing values. 
