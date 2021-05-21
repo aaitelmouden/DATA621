@@ -223,20 +223,49 @@ curve <- roc(response = train4$Survived,
 #### Model 3: Random Forest
 
 ```{r}
-set.seed(300)
+set.seed(51)
 
-model3 <- randomForest(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age, data = train3)
+#model3 <- randomForest(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked, data = train3)
 
-model3
+model3.1 <- train(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked,
+                  data = train3,
+                  method = 'rf',
+                  trControl = trainControl(method = 'cv',
+                                           number = 10))
+```
+
+```{r}
+model3.1
+```
+
+```{r}
+which.min(model3$mse)
 ```
 
 ```{r}
 varImpPlot(model3)
 ```
 
+```{r}
+plot(model3.1)
+```
+
+```{r}
+model_tuned <- tuneRF(
+               x=train3[,c(-3, -8)], #define predictor variables
+               y=train3$Survived, #define response variable
+               ntreeTry=500,
+               mtryStart=4, 
+               stepFactor=1.5,
+               improve=0.01,
+               trace=FALSE #don't show real-time progress
+               )
+
+```
+
 ## Test Models
 
-### Investigate Test Data
+### Investigate/Clean Test Data
 
 Repeating the same data cleaning steps for the test data as the training data.
 ```{r}
@@ -296,3 +325,79 @@ gap=3, ylab=c("Missing data","Pattern"))
 ```
 
 Interesting, Fare is missing values as well as Age. In the training data set, only Age had a significant amount of missing values. 
+
+```{r}
+test3 <- test2
+predicted_age_test <- rpart(Age ~ Pclass + Sex + SibSp + Parch + Fare + Embarked + title,
+                       data = test3[!is.na(test3$Age),], method = "anova")
+test3$Age[is.na(test3$Age)] <- predict(predicted_age_test, test3[is.na(test3$Age),])
+```
+
+```{r}
+predicted_fare_test <- rpart(Fare ~ Pclass + Sex + SibSp + Parch + Age + Embarked + title,
+                       data = test3[!is.na(test3$Fare),], method = "anova")
+test3$Fare[is.na(test3$Fare)] <- predict(predicted_fare_test, test3[is.na(test3$Fare),])
+```
+
+
+### Running the Models on the Test Set
+
+
+Second Model Predictions
+
+```{r}
+test4 <- test3
+pred.test2 <- predict(model2, test4, type = "response")
+predtest.classes <- ifelse(pred.test2 > 0.75, 1, 0)
+test4$pred.class <- predtest.classes
+```
+
+```{r}
+sub1 <- data.frame(test$PassengerId, test4$pred.class)
+colnames(sub1) = c("PassengerId", "Survived")
+```
+
+```{r}
+write.csv(sub1, "C:\\Users\\gabre\\Desktop\\Submission.csv", row.names = FALSE)
+```
+
+Third Model Predictions
+```{r}
+#source: https://stackoverflow.com/questions/24829674/r-random-forest-error-type-of-predictors-in-new-data-do-not-match
+xtest <- rbind(train3[1,-1], test3)
+xtest <- xtest[-1,]
+```
+
+Random Forest with train method
+```{r}
+pred.test3.1 <- predict(model3.1, newdata=xtest, type="raw")
+```
+
+```{r}
+sub2 <- data.frame(test$PassengerId, pred.test3.1)
+colnames(sub2) = c("PassengerId", "Survived")
+```
+
+```{r}
+write.csv(sub2, "C:\\Users\\gabre\\Desktop\\Submission2.csv", row.names = FALSE)
+```
+
+Random Forest with randomForest function
+```{r}
+pred.test3 <- predict(model3, newdata = xtest, type = "response")
+```
+
+```{r}
+sub3 <- data.frame(test$PassengerId, pred.test3)
+colnames(sub3) = c("PassengerId", "Survived")
+```
+
+```{r}
+write.csv(sub2, "C:\\Users\\gabre\\Desktop\\Submission3.csv", row.names = FALSE)
+```
+
+## Select Model
+
+The model with the most accurate result is model 2. Tweaking the thresholds changed final results on kaggle but changing the threshold to 0.75 seemed to be optimal (produced score of 0.77511), while the random forest models produced scores of 0.75358. 
+
+The models might see greater accuracy testing differente methods of imputation. The age column saw the greatest amount of missing values, focusing on creating accurate age values will most likely improve the models.
