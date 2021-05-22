@@ -30,23 +30,46 @@ library(pscl)
 library(skimr)
 ```
 
-## Introduction
+##Abstract
+The purpose of our final project is to enter Kaggle's "Titanic - Machine Learning from Disaster" competition. The goal is to predict as accurately as possible which passengers aboard the Titanic survived the shipwreck. We chose this challenge as our final project because it is the culmination of all the skills and methodologies we learned during this semester. This project will use several techniques for the classification of each passenger as someone who either died or survived, including logistic regression and random forest modeling. A logistic regression model ended up producing the best results, outperforming or random forest models. Our best model received a score of 0.77511
 
-The purpose of our final project is to enter Kaggle's "Titanic - Machine Learning from Disaster"competition. The goal is to predict as accurately as possible which passengers aboard the Titanic survived the shipwreck. We chose this challenge as our final project because it is the acccumulation of all the skills and methodologies we've learned during this semester. 
+##Background and Challenge Description
 
-## Background and Challenge Description 
-
-The sinking of the Titanic is one of the most infamous shipwrecks in history.
+"The sinking of the Titanic is one of the most infamous shipwrecks in history.
 
 On April 15, 1912, during her maiden voyage, the widely considered “unsinkable” RMS Titanic sank after colliding with an iceberg. Unfortunately, there weren’t enough lifeboats for everyone onboard, resulting in the death of 1502 out of 2224 passengers and crew.
 
-While there was some elements of luck involved in surviving, it seems some groups of people were more likely to survive than others.
+While there was some element of luck involved in surviving, it seems some groups of people were more likely to survive than others.
 
-In this challenge, We are going to build a predictive model that answers the question: “what sorts of people were more likely to survive?” using passenger data (ie name, age, gender, socio-economic class, etc)."(https://www.kaggle.com/c/titanic)
+In this challenge, we ask you to build a predictive model that answers the question: “what sorts of people were more likely to survive?” using passenger data (i.e. name, age, gender, socio-economic class, etc.)."(https://www.kaggle.com/c/titanic)
 
-## Data Exploration
+##Literature Review
+Below is a list of articles that helped us in determining our approach to this competition.
+https://towardsdatascience.com/kaggles-titanic-competition-in-10-minutes-part-i-e6d18e59dbce
+https://medium.datadriveninvestor.com/start-with-kaggle-a-comprehensive-guide-to-solve-the-titanic-challenge-8ac5815b0473
+https://python.plainenglish.io/what-happened-when-i-used-stacking-on-the-kaggle-titanic-competition-7914b1b02d6c
+https://datatricks.co.uk/80-in-kaggles-titanic-competition-in-50-lines-of-r-code
+https://towardsdatascience.com/predicting-titanic-survivors-a-kaggle-competition-625405f5031e
+	These articles provide a good overview of the current state-of-the-art for solving the Titanic Kaggle competition. While several articles describe examples in python, they provide good examples of different strategies that can be used even our project will be done in R.  Several of the articles suggest imputation of the Age values that are missing, as there are many missing values in this column.
+	The literature also suggests that feature engineering is also a key to solving this problem. Most of the articles mention designing new variables around the title information that can be extracted from the “Name” column.  In our case, we decided to go a step further than the literature and classify various types of titles, such as military, royal, and others. Some articles in the literature suggested using a decision tree algorithm, but we opted for logistic regression and random forest.
+	
+##Methodology
+	Our methodology consisted of a 5-step process. The data was provided by Kaggle and was pre-separated into training and testing sets. The competition called for the “test” dataset to be used for model evaluation. Our process included the following:
+  •	Data Exploration:  summary statistics and simple visualizations were created to search for relationships between the variables.
 
-Load the data and take a look on the content:
+  •	Data Preparation: null values were imputed and new features were engineered.
+
+  •	Logistic Regression Modeling: A binomial logistic regression model was used as an initial comparison for the following model that was simplified using stepwise regression.
+
+  •	Random Forest Modeling: two different random forest functions were used from different packages to be sure we had the best version.
+
+•	Evaluation: the test data was then cleaned and run through the models and their performance was evaluated. Additional tweaks to the models were made in attempt to improve performance.
+
+##Experimentation and Results
+
+### Data Exploration
+
+First, we loaded the data and examined the structure.
 
 ```{r, include = FALSE}
 train <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Final%20Project/train.csv", header = TRUE)
@@ -259,7 +282,7 @@ curve <- roc(response = train4$Survived,
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 set.seed(51)
-#model3 <- randomForest(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked, data = train3)
+model3 <- randomForest(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked, data = train3)
 model3.1 <- train(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked,
                   data = train3,
                   method = 'rf',
@@ -274,7 +297,7 @@ model3.1
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-which.min(model3$mse)
+which.min(model3.1$mse)
 ```
 
 
@@ -306,7 +329,7 @@ model_tuned <- tuneRF(
 Repeating the same data cleaning steps for the test data as the training data
 .
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-skim(test)
+#skim(test)
 ```
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -395,10 +418,7 @@ sub1 <- data.frame(test$PassengerId, test4$pred.class)
 colnames(sub1) = c("PassengerId", "Survived")
 ```
 
-```{r include=FALSE}
 
-write.csv(sub1, "C:\\Users\\gabre\\Desktop\\Submission.csv", row.names = FALSE)
-```
 
 Third Model Predictions
 
@@ -418,9 +438,6 @@ sub2 <- data.frame(test$PassengerId, pred.test3.1)
 colnames(sub2) = c("PassengerId", "Survived")
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-write.csv(sub2, "C:\\Users\\gabre\\Desktop\\Submission2.csv", row.names = FALSE)
-```
 
 Random Forest with randomForest function
 
@@ -433,9 +450,6 @@ sub3 <- data.frame(test$PassengerId, pred.test3)
 colnames(sub3) = c("PassengerId", "Survived")
 ```
 
-```{r include=FALSE}
-write.csv(sub2, "C:\\Users\\gabre\\Desktop\\Submission3.csv", row.names = FALSE)
-```
 
 ## Select Model
 
@@ -448,7 +462,6 @@ The models might see greater accuracy testing different methods of imputation. T
 ## Appendix
 
 ```{r}
-
 library(corrplot)
 library(tidyverse)
 library(Hmisc)
