@@ -3,10 +3,12 @@ title: "Count Regression Model"
 author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
 date: "5/22/2021"
 output:
-  pdf_document:
-    latex_engine: xelatex
   html_document:
     df_print: paged
+  always_allow_html: true
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
 ---
 
 ```{r include=FALSE}
@@ -250,7 +252,7 @@ print('Goodness of Fit Test:')
 
 ```{r include=FALSE}
 
-With(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+with(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
 
 ```
 
@@ -308,7 +310,7 @@ summary(model5)
 
 ## Model 6: Negative Binomial
 
-```{r}
+```{r include=FALSE}
 
 model6 <-glm.nb(formula=TARGET~., data=train_data_imputed, link = 'log')
 summary(model6)
@@ -373,7 +375,6 @@ ggplot(data_pred, aes(x=TARGET)) + geom_bar(fill="steelblue") + theme_minimal() 
 ```
 
 
-Note: Please see csv file attached for Wine predictions.
 
 ```{r include=FALSE}
 write.csv(test_predict, "WinePredictions.csv")
