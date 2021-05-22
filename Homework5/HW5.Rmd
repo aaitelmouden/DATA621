@@ -1,7 +1,7 @@
 ---
-title: "Multiple linear regression and binary logistic regression models"
+title: "Count Regression Model"
 author: "Abdellah AitElmouden | Gabriel Abreu |  Jered Ataky | Patrick Maloney"
-date: "4/13/2021"
+date: "5/22/2021"
 output:
   pdf_document:
     latex_engine: xelatex
@@ -33,6 +33,7 @@ library(pROC)
 library(randomForest)
 library(pscl)
 library(skimr)
+library(MASS)
 ```
 
 
@@ -43,26 +44,25 @@ The target variable, cases of wine sold, is count data and therefore will be mod
 
 ## Data Exploration
 
-First let's import the data:
 
-```{r}
+```{r include=FALSE}
 train_data <- read.csv("./data/wine-training-data.csv", header = TRUE)
 test_data <- read.csv("./data/wine-evaluation-data.csv", header = TRUE)
 ```
 
-```{r}
+```{r include=FALSE}
 glimpse(train_data)
 ```
 
 
-All the variable in this dataset are numeric and continuous except for AcidIndex, STARS and LabelAppeal which are discrete. The target variable TARGET is also discrete. There are a number of missing observations for certain chemical compositiion variables as well as a large number of wines with no STARS rating. The distribution of the continous variables appear well centered.
+All the variable in this dataset are numeric and continuous except for AcidIndex, STARS and LabelAppeal which are discrete. The target variable TARGET is also discrete. There are a number of missing observations for certain chemical composition variables as well as a large number of wines with no STARS rating. The distribution of the continuous variables appear well centered.
 
 
-```{r}
+```{r include=FALSE}
 skim(train_data)
 ```
 
-```{r}
+```{r include=FALSE}
 # remove index column as it is not needed
 train_data <- train_data %>% 
   dplyr::select(-"ï..INDEX")
@@ -70,11 +70,12 @@ data_test <- test_data %>%
   dplyr::select(-"IN")
 ```
 
+
 ## Visualization
 
 To take a look at the distributions of the dataset, we plot some histograms and can see that all continuous variables are centered and close to normally distributed. We also note that some variables are centered around zero and take negative values which is unexpected and will be investigated further and transformed for our analysis. The distribution of the TARGET variable looks like it could be well described by the poisson distribution which has equal mean and variance but the high number of zero values justifies the use of a zero-inflated model as well. The mean and variance of TARGET are 3.02 and 3.71 respectively, which is close enough to satisfy the equal mean-variance assumption of the poisson distribution.
 
-```{r}
+```{r include=FALSE}
 # histogram
 train_data %>% 
   dplyr::select(-c("AcidIndex", "STARS", "TARGET", "LabelAppeal")) %>% 
@@ -85,7 +86,8 @@ train_data %>%
   theme_minimal()
 ```
 
-```{r}
+
+```{r include=FALSE}
 train_data %>% 
   ggplot(aes(x=TARGET)) + 
   geom_histogram(fill='blue')
@@ -93,7 +95,7 @@ train_data %>%
 
 below box plot shows several variables in to two panels. Some variables such as TotalSulfurDioxide, FreeSulfurDioxide, and ResidualSugar have large ranges compared to other variables. Therefore, we separated those variables in to a different panel to view their distribution. From both panel, we can tell a high number of variables have numerous outliers.
 
-```{r}
+```{r include=FALSE}
 library(ggpubr)
 # boxplot
 p1 <- train_data %>% 
@@ -121,7 +123,7 @@ by taking a look at the bar char below, we can conclude the following point:
 - However, better label does yield higher number of wine samples per order. 
 - STARS tells us excellent quality does not result in high wine orders. It could be due to high star wine bottle’s high price tag.
 
-```{r}
+```{r include=FALSE}
 # barchart
 p3 <- train_data %>% 
   dplyr::select(TARGET, STARS) %>% 
@@ -147,7 +149,9 @@ p5 <- train_data %>%
 ggarrange(p5, ggarrange(p3, p4, ncol = 2, nrow = 1, legend = "none"), nrow = 2, common.legend = TRUE)
 ```
 
-```{r}
+
+
+```{r include=FALSE}
 # top correlation
 wine_train_corr <- train_data %>% 
   drop_na() %>% 
@@ -158,7 +162,8 @@ kable(sort(wine_train_corr[,1], decreasing = T), col.names = c("Correlation")) %
 
 The plot below represent the correlation table and plot, and we can see that STARS and LabelAppeal are most positively correlated variables with the response variable. We expected this because our variable description mentions these variable’s theoretical affect are higher than other variables. Also, we some mild negative correlation between the response variable and AcidIndex variable.
 
-```{r}
+
+```{r include=FALSE}
 library(corrplot)
 library(RColorBrewer)
 # correlation plot
@@ -170,11 +175,13 @@ corrplot(wine_train_corr,
          tl.col = "black", tl.srt = 45)
 ```
 
+
 ## Data Preparation
 
-To explore the missing variables we Used the aggr function from VIM package, from the plot we see several variables have missing values. According to UCI Machine Learning, who published this dataset, all wine contain some natural sulfites. Therefore, to avoid creating problems while analyzing our data we will impute the missing values for sulfite chemical properties. Also We will impute values of wines with less than 1 gram/liter of sugar. Matter of fact, since all missing values are missing at random, we will impute all the missing values using the mice package and random forest method. Mice package uses multivariate imputations to estimate the missing values. Using multiple imputations helps in resolving the uncertainty for the missingness. Our target variable will be removed as a predictor variable but still will be imputed. Our response variables will be removed as predictor variables but still will be imputed.
+To explore the missing variables we Used the aggr function from VIM package, from the plot we see several variables have missing values. According to UCI Machine Learning, who published this dataset, all wine contain some natural sulfites. Therefore, to avoid creating problems while analyzing our data we will impute the missing values for sulfite chemical properties. Also We will impute values of wines with less than 1 gram/liter of sugar. Matter of fact, since all missing values are missing at random, we will impute all the missing values using the mice package and random forest method. Mice package uses multivariate imputations to estimate the missing values. Using multiple imputations helps in resolving the uncertainty for the missing values. Our target variable will be removed as a predictor variable but still will be imputed. Our response variables will be removed as predictor variables but still will be imputed.
 
-```{r}
+
+```{r include=FALSE}
 library(VIM)
 # missing value columns
 aggr(train_data, 
@@ -188,7 +195,8 @@ aggr(train_data,
      ylab = "Missing Values")
 ```
 
-```{r}
+
+```{r include=FALSE}
 library(mice)
 # imputating train data
 init <- mice(train_data)
@@ -200,21 +208,25 @@ train_data_imputed <-mice:: complete(train_data_impute)
 print(paste0("Missing value after imputation: ", sum(is.na(train_data_imputed))))
 ```
 
+
 ## Model Building
 
 ### Model 1: Poisson (Raw data)
 
-```{r}
+```{r include=FALSE}
 # poisson model with the missing values
 model1 <- glm(TARGET ~ ., family = poisson, train_data)
 summary(model1)
 ```
 
-```{r}
+ 
+```{r include=FALSE}
 print('Goodness of Fit Test:')
 ```
 
-```{r}
+
+
+```{r include=FALSE}
 
 with(model1, cbind(res.deviance = deviance, df = df.residual,  p = pchisq(deviance, df.residual, lower.tail=FALSE)))
 ```
@@ -223,19 +235,23 @@ From the output we can say that the deviance residuals is quite symmetrical. Thi
 
 ### Model 2: Poisson (Imputed Data)
 
-```{r}
+```{r include=FALSE}
 # poisson model with the imputed values
 model2 <- glm(TARGET ~ ., family = poisson, train_data_imputed)
 summary(model2)
 ```
 
-```{r}
+
+```{r include=FALSE}
 print('Goodness of Fit Test:')
 ```
 
 
-```{r}
-with(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+
+```{r include=FALSE}
+
+With(model2, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+
 ```
 
 The deviance residuals are the same as before. Imputation, on the other hand, introduces more important variables into the model. Furthermore, the AIC score increased significantly from 23172 to 50384. In addition, the deviance residuals fell from 40,000 to 18,412. The goodness of fit measure, on the other hand, has a very low p value, indicating that this model does not fit the data well. Since the residual deviance is greater than the degrees of freedom, then some over-dispersion exists.
@@ -246,39 +262,66 @@ Given what we observed when looking at the distribution of TARGET, we should exp
 
 We try a quasipoisson model to account for any overdispersion and to see if the results change significantly. As seen in the summary below, the models are nearly identical.
 
-```{r}
+```{r include=FALSE}
 # poisson model with the imputed values
 model3 <- glm(TARGET ~ ., family = quasipoisson(link='log'), train_data_imputed)
 summary(model3)
 ```
 
-```{r}
+```{r include=FALSE}
 print('Goodness of Fit Test:')
 ```
 
-```{r}
+
+```{r include=FALSE}
 with(model3, cbind(res.deviance = deviance, df = df.residual, p = pchisq(deviance, df.residual, lower.tail=FALSE)))
 ```
+
 
 ### Model 4: Zero Inflated
 
 We saw earlier that the dependent variable had an excess number of zeros which skewed the distribution from a typical poisson. The zero inflated model generates coefficients for the zero count part of the model as well as for the count part.
 
-```{r}
+```{r include=FALSE}
 model4 <- zeroinfl(TARGET ~., train_data_imputed, dist = 'poisson')
 summary(model4)
 ```
 
-```{r}
+
+```{r include=FALSE}
 model4b <- zeroinfl(TARGET ~ . - FixedAcidity - Density, train_data_imputed, dist = 'poisson')
 summary(model4b)
 ```
 
-## Model Selection
 
-Based on the models tested, we select the Zero Inflated model due to the highest accuracy of the 4 models.
+## Model 5: Linear Model
+
+Let build a multiple linear regression
+
+```{r include=FALSE}
+model5 <- lm(TARGET~., data = train_data_imputed)
+
+summary(model5)
+
+```
+
+
+## Model 6: Negative Binomial
 
 ```{r}
+
+model6 <-glm.nb(formula=TARGET~., data=train_data_imputed, link = 'log')
+summary(model6)
+
+
+```
+
+
+## Model Selection
+
+Based on the models tested, we select the Zero Inflated model due to the highest accuracy compared to other models. Also, Zero Inflation model corrects many zeros which are dominated in poisson distributions especially in this case where there are many zeros normally distributed. 
+
+```{r include=FALSE}
 pred_train <- data.frame(TARGET=train_data_imputed$TARGET, 
                          model2=model2$fitted.values, 
                          model3=model3$fitted.values, 
@@ -293,7 +336,9 @@ pred_train %>%
   theme_minimal() + labs(x="Cases Bought", y = "Count", title = "Prediction Histogram")
 ```
 
-```{r}
+
+
+```{r include=FALSE}
 model2_fitted.values <- factor(round(model2$fitted.values),levels=rev(0:9))
 model3_fitted.values <- factor(round(model3$fitted.values),levels=rev(0:9))
 model4b_fitted.values <- factor(round(model4b$fitted.values),levels=rev(0:9))
@@ -305,7 +350,8 @@ colnames(models_sum) <- c("Poisson (Imputed)" ,"Quasipoisson Model", "Zero Infla
 round(models_sum, 2)
 ```
 
-```{r}
+
+```{r include=FALSE}
 init <- mice(data_test)
 meth <- init$method
 predM <- init$predictorMatrix
@@ -315,7 +361,9 @@ data_test_imputed <- mice::complete(data_test_impute)
 print(paste0("Missing value after imputation: ", sum(is.na(data_test_imputed))))
 ```
 
-```{r}
+
+
+```{r include=FALSE}
 test_predict <- predict(model4b, newdata=data_test_imputed)
 test_predict <- round(test_predict,0)
 data_pred <- data.frame(TARGET=test_predict)
@@ -324,7 +372,10 @@ ggplot(data_pred, aes(x=TARGET)) + geom_bar(fill="steelblue") + theme_minimal() 
     scale_x_discrete(name = "Cases Bought", limits=c("1","2","3","4", "5", "6", "7", "8"))
 ```
 
-```{r}
+
+Note: Please see csv file attached for Wine predictions.
+
+```{r include=FALSE}
 write.csv(test_predict, "WinePredictions.csv")
 ```
 
