@@ -30,10 +30,10 @@ library(pscl)
 library(skimr)
 ```
 
-##Abstract
+## Abstract
 The purpose of our final project is to enter Kaggle's "Titanic - Machine Learning from Disaster" competition. The goal is to predict as accurately as possible which passengers aboard the Titanic survived the shipwreck. We chose this challenge as our final project because it is the culmination of all the skills and methodologies we learned during this semester. This project will use several techniques for the classification of each passenger as someone who either died or survived, including logistic regression and random forest modeling. A logistic regression model ended up producing the best results, outperforming or random forest models. Our best model received a score of 0.77511
 
-##Background and Challenge Description
+## Background and Challenge Description
 
 "The sinking of the Titanic is one of the most infamous shipwrecks in history.
 
@@ -43,17 +43,22 @@ While there was some element of luck involved in surviving, it seems some groups
 
 In this challenge, we ask you to build a predictive model that answers the question: “what sorts of people were more likely to survive?” using passenger data (i.e. name, age, gender, socio-economic class, etc.)."(https://www.kaggle.com/c/titanic)
 
-##Literature Review
+## Literature Review
 Below is a list of articles that helped us in determining our approach to this competition.
+
 https://towardsdatascience.com/kaggles-titanic-competition-in-10-minutes-part-i-e6d18e59dbce
+
 https://medium.datadriveninvestor.com/start-with-kaggle-a-comprehensive-guide-to-solve-the-titanic-challenge-8ac5815b0473
+
 https://python.plainenglish.io/what-happened-when-i-used-stacking-on-the-kaggle-titanic-competition-7914b1b02d6c
+
 https://datatricks.co.uk/80-in-kaggles-titanic-competition-in-50-lines-of-r-code
 https://towardsdatascience.com/predicting-titanic-survivors-a-kaggle-competition-625405f5031e
+
 	These articles provide a good overview of the current state-of-the-art for solving the Titanic Kaggle competition. While several articles describe examples in python, they provide good examples of different strategies that can be used even our project will be done in R.  Several of the articles suggest imputation of the Age values that are missing, as there are many missing values in this column.
 	The literature also suggests that feature engineering is also a key to solving this problem. Most of the articles mention designing new variables around the title information that can be extracted from the “Name” column.  In our case, we decided to go a step further than the literature and classify various types of titles, such as military, royal, and others. Some articles in the literature suggested using a decision tree algorithm, but we opted for logistic regression and random forest.
 	
-##Methodology
+## Methodology
 	Our methodology consisted of a 5-step process. The data was provided by Kaggle and was pre-separated into training and testing sets. The competition called for the “test” dataset to be used for model evaluation. Our process included the following:
   •	Data Exploration:  summary statistics and simple visualizations were created to search for relationships between the variables.
 
@@ -65,61 +70,43 @@ https://towardsdatascience.com/predicting-titanic-survivors-a-kaggle-competition
 
 •	Evaluation: the test data was then cleaned and run through the models and their performance was evaluated. Additional tweaks to the models were made in attempt to improve performance.
 
-##Experimentation and Results
+## Experimentation and Results
 
 ### Data Exploration
 
-First, we loaded the data and examined the structure.
+First, we loaded the data and examined the structure. The data has 5 factor, 5 discrete, and 2 continuous variables. There will need to be further exploration to see if any of the columns are missing data.
 
 ```{r, include = FALSE}
 train <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Final%20Project/train.csv", header = TRUE)
 test <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Final%20Project/test.csv", header = TRUE)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 glimpse(train)
-```
-The data has 5 factor, 5 discrete, and 2 continuous variables. There will need to be further exploration to see if any of the columns are missing data.
-
-We can quickly get the number of "NA" values per column using the skim function. 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-skim(train)
 ```
 The Age column is only 80% complete with 177 missing values. We're going to have impute the missing data. 
 
 The Cabin column has 687 empty values, imputing that data may not be the best choice since we're filling in more than 50% of the empty values. On the other hand Embarked only has 2 empty values, so we can fill in those empty values without major impact.
 
-## Visualization
+#### Visualization
 
-Creating a dataset just for visualizaion purposes
+Below are several visualizations to help us see how survivors are distributed amongst certain variables.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 train_visual <- train%>%mutate(Survive = case_when(Survived==1~"Survived", Survived==0~"Did Not Survive")) 
 ```
 
-Examine the survival rate for the overall population
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 prop.table(table(train_visual$Survive))
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3), fig}
 train_visual%>%ggplot(aes(Sex,fill=Survive))+geom_bar()
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-
 train_visual%>%ggplot(aes(Embarked,fill=Survive))+geom_bar()+facet_wrap(~Sex)
-```
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 train_visual%>%ggplot(aes(Pclass, fill=Survive)) + geom_bar()+facet_wrap(~Sex)
-```
-
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
 train_visual%>%ggplot(aes(Age, fill=Survive)) + geom_histogram(binwidth = 2)
 ```
 
@@ -129,21 +116,21 @@ train_visual%>%ggplot(aes(Age, fill=Survive)) + geom_histogram(binwidth = 2)
 train_visual %>% ggplot(aes(Fare, fill=Survive))+geom_histogram(binwidth = 50)+facet_wrap(Sex~Pclass)
 ```
 
-Based on the visuals, it seems like gender and class had an effect on a passenger's probability of survivor. We can look at the titles associated with the passenger's name. This is going to require creating some columns.
+Based on the visuals, it seemed gender and class had an effect on a passenger's probability of surviving. We then looked at the titles associated with the passenger's name.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 #Create a new column with all the different titles
 train$title <- gsub('(.*, )|(\\..*)', '', train$Name)
 ```
 
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 table(train$Sex, train$title)
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
 military_title <-c('Capt', 'Col', 'Major')
 royal_title <-c('the Countess', 'Jonkheer', 'Sir', 'Lady')
@@ -159,12 +146,12 @@ train$title[train$title %in% the_rest] <- 'Other'
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 table(train$Sex, train$title)
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 train$title <- as.factor(train$title)
 ```
 
@@ -176,38 +163,31 @@ train_visual%>%ggplot(aes(title, fill=Survive)) + geom_bar(position = 'fill') + 
 
 ## Data Preparation
 
-There are three variables with missing or empty values based on our exploration of the data and visualizations: Embark, Cabin, and Age. 
+There are three variables with missing or empty values based on our exploration of the data and visualizations: Embark, Cabin, and Age. Only passengers 62 and 830 are missing their embark ports. We randomly assigned them a value of "C". The column Cabin had too many missing values to impute or fill, so we dropped the Cabin column from the training data set.
 
-Localization of the empty values for Embark
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
 train$Embarked[train$Embarked == ""] <- NA
 train[(which(is.na(train$Embarked))), 1]
 ```
 
-
-Only passengers 62 and 830 are missing their embark ports. We will randomly assign them "C". 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 train$Embarked[c(62, 830)] <- 'C'
 ```
 
-Cabin has too many missing values to impute or fill, so we will drop the Cabin column from the training data set.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 train2 <- subset(train, select = -c(Cabin, PassengerId))
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3)}
 aggr(train2, col=c('navyblue','yellow'),
 numbers=TRUE, sortVars=TRUE,
 labels=names(train2), cex.axis=.7,
 gap=3, ylab=c("Missing data","Pattern"))
 ```
 
-We can impute the age date using the rpart function.
+We can see that Age was missing nearly 20% of its values. This data was imputed using the rpart function.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #source: https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf
@@ -324,23 +304,18 @@ model_tuned <- tuneRF(
 
 ## Test Models
 
-### Investigate/Clean Test Data
 
-Repeating the same data cleaning steps for the test data as the training data
-.
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-#skim(test)
-```
+The same data cleaning steps were repeated for the test data as the training data.The null values were imputed and the title categories were created
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 test$title <- gsub('(.*, )|(\\..*)', '', test$Name)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 table(test$Sex, test$title)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
 military_title <-c('Capt', 'Col', 'Major')
 royal_title <-c('the Countess', 'Jonkheer', 'Sir', 'Lady')
@@ -355,26 +330,20 @@ test$title[test$title %in% royal_title] <- 'Nobility'
 test$title[test$title %in% the_rest] <- 'Other'
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 table(test$Sex, test$title)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 test$title <- as.factor(test$title)
 ```
 
-
-Checking for Embarked missing passengers, which there are none.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 test$Embarked[test$Embarked == ""] <- NA
 test[(which(is.na(test$Embarked))), 1]
 ```
 
-
-Cabin has too many missing values to immpute or fill, so we will drop the Cabin column from the training data set.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 test2 <- subset(test, select = -c(Cabin, PassengerId))
 ```
 
@@ -385,23 +354,23 @@ labels=names(test2), cex.axis=.7,
 gap=3, ylab=c("Missing data","Pattern"))
 ```
 
-Interesting, Fare is missing values as well as Age. In the training data set, only Age had a significant amount of missing values. 
+Interestingly, Fare is missing values as well as Age in the test dataset. In the training data set, only Age had a significant amount of missing values. We imputed these values in Rpart as well as age.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 test3 <- test2
 predicted_age_test <- rpart(Age ~ Pclass + Sex + SibSp + Parch + Fare + Embarked + title,
                        data = test3[!is.na(test3$Age),], method = "anova")
 test3$Age[is.na(test3$Age)] <- predict(predicted_age_test, test3[is.na(test3$Age),])
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 predicted_fare_test <- rpart(Fare ~ Pclass + Sex + SibSp + Parch + Age + Embarked + title,
                        data = test3[!is.na(test3$Fare),], method = "anova")
 test3$Fare[is.na(test3$Fare)] <- predict(predicted_fare_test, test3[is.na(test3$Fare),])
 ```
 
 
-### Running the Models on the Test Set
+#### Running the Models on the Test Set
 
 
 Second Model Predictions
@@ -461,7 +430,7 @@ The models might see greater accuracy testing different methods of imputation. T
 
 ## Appendix
 
-```{r}
+```{}
 library(corrplot)
 library(tidyverse)
 library(Hmisc)
@@ -479,7 +448,6 @@ library(reshape)
 library(pROC)
 library(randomForest)
 library(pscl)
-library(skimr)
 
 
 #Import the training and testing data sets:
@@ -489,7 +457,7 @@ test <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/
 
 glimpse(train)
 
-skim(train)
+summary(train)
 
 
 
@@ -635,7 +603,7 @@ model_tuned <- tuneRF(
 
 # Repeating the same data cleaning steps for the test data as the training data.
 
-skim(test)
+summary(test)
 
 test$title <- gsub('(.*, )|(\\..*)', '', test$Name)
 
@@ -690,7 +658,6 @@ test4$pred.class <- predtest.classes
 sub1 <- data.frame(test$PassengerId, test4$pred.class)
 colnames(sub1) = c("PassengerId", "Survived")
 
-write.csv(sub1, "C:\\Users\\gabre\\Desktop\\Submission.csv", row.names = FALSE)
 
 
 #Third Model Predictions
