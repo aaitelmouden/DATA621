@@ -374,7 +374,7 @@ test3$Fare[is.na(test3$Fare)] <- predict(predicted_fare_test, test3[is.na(test3$
 #### Running the Models on the Test Set
 
 
-Second Model Predictions
+Because of the nature of Kaggle competitions, the test data we were provided with did not contain a reference column. Thus when we ran our predictions, the predictions were outputed to a new csv file and submitted to Kaggle for grading.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 test4 <- test3
@@ -390,7 +390,6 @@ colnames(sub1) = c("PassengerId", "Survived")
 
 
 
-Third Model Predictions
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #source: https://stackoverflow.com/questions/24829674/r-random-forest-error-type-of-predictors-in-new-data-do-not-match
@@ -398,7 +397,6 @@ xtest <- rbind(train3[1,-1], test3)
 xtest <- xtest[-1,]
 ```
 
-Random Forest with train method
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 pred.test3.1 <- predict(model3.1, newdata=xtest, type="raw")
 ```
@@ -409,7 +407,7 @@ colnames(sub2) = c("PassengerId", "Survived")
 ```
 
 
-Random Forest with randomForest function
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 pred.test3 <- predict(model3, newdata = xtest, type = "response")
