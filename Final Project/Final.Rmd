@@ -55,11 +55,19 @@ https://python.plainenglish.io/what-happened-when-i-used-stacking-on-the-kaggle-
 https://datatricks.co.uk/80-in-kaggles-titanic-competition-in-50-lines-of-r-code
 https://towardsdatascience.com/predicting-titanic-survivors-a-kaggle-competition-625405f5031e
 
-	These articles provide a good overview of the current state-of-the-art for solving the Titanic Kaggle competition. While several articles describe examples in python, they provide good examples of different strategies that can be used even our project will be done in R.  Several of the articles suggest imputation of the Age values that are missing, as there are many missing values in this column.
-	The literature also suggests that feature engineering is also a key to solving this problem. Most of the articles mention designing new variables around the title information that can be extracted from the “Name” column.  In our case, we decided to go a step further than the literature and classify various types of titles, such as military, royal, and others. Some articles in the literature suggested using a decision tree algorithm, but we opted for logistic regression and random forest.
+These articles provide a good overview of the current state-of-the-art for solving the Titanic Kaggle
+competition. While several articles describe examples in python, they provide good examples of different
+strategies that can be used even our project will be done in R.  Several of the articles suggest imputation of the
+Age values that are missing, as there are many missing values in this column.
+
+The literature also suggests that feature engineering is also a key to solving this problem. Most of the articles
+mention designing new variables around the title information that can be extracted from the “Name” column.  In
+our case, we decided to go a step further than the literature and classify various types of titles, such as
+military, royal, and others. Some articles in the literature suggested using a decision tree algorithm, but we	opted for logistic regression and random forest.
 	
 ## Methodology
-	Our methodology consisted of a 5-step process. The data was provided by Kaggle and was pre-separated into training and testing sets. The competition called for the “test” dataset to be used for model evaluation. Our process included the following:
+Our methodology consisted of a 5-step process. The data was provided by Kaggle and was pre-separated into
+training and testing sets. The competition called for the “test” dataset to be used for model evaluation. Our process included the following:
   •	Data Exploration:  summary statistics and simple visualizations were created to search for relationships between the variables.
 
   •	Data Preparation: null values were imputed and new features were engineered.
@@ -69,6 +77,22 @@ https://towardsdatascience.com/predicting-titanic-survivors-a-kaggle-competition
   •	Random Forest Modeling: two different random forest functions were used from different packages to be sure we had the best version.
 
 •	Evaluation: the test data was then cleaned and run through the models and their performance was evaluated. Additional tweaks to the models were made in attempt to improve performance.
+
+**Variable Descriptions**
+
+| Variable | Description                                                          |
+|----------|----------------------------------------------------------------------|
+| survival | Survival (0 = No; 1 = Yes)                                           |
+| pclass   | Passenger Class (1 = 1st; 2 = 2nd; 3 = 3rd)                          |
+| name     | Name                                                                 |
+| sex      | Sex                                                                  |
+| age      | Age                                                                  |
+| sibsp    | Number of Siblings/Spouses Aboard                                    |
+| parch    | Number of Parents/Children Aboard                                    |
+| ticket   | Ticket Number                                                        |
+| fare     | Passenger Fare                                                       |
+| cabin    | Cabin                                                                |
+| embarked | Port of Embarkation (C = Cherbourg; Q = Queenstown; S = Southampton) |
 
 ## Experimentation and Results
 
@@ -81,10 +105,12 @@ train <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master
 test <- read.csv("https://raw.githubusercontent.com/aaitelmouden/DATA621/master/Final%20Project/test.csv", header = TRUE)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=True}
 glimpse(train)
+
 ```
-The Age column is only 80% complete with 177 missing values. We're going to have impute the missing data. 
+
+From the summary above, the first thing that caught my eye is there are NAs, AKA missing values. Before we can make any statistical model, we will need to deal with them first. 
 
 The Cabin column has 687 empty values, imputing that data may not be the best choice since we're filling in more than 50% of the empty values. On the other hand Embarked only has 2 empty values, so we can fill in those empty values without major impact.
 
@@ -115,8 +141,12 @@ train_visual%>%ggplot(aes(Age, fill=Survive)) + geom_histogram(binwidth = 2)
 
 train_visual %>% ggplot(aes(Fare, fill=Survive))+geom_histogram(binwidth = 50)+facet_wrap(Sex~Pclass)
 ```
+From the plots above, we can conclude that:
 
-Based on the visuals, it seemed gender and class had an effect on a passenger's probability of surviving. We then looked at the titles associated with the passenger's name.
+- If a passenger is from upper class, he has a much higher chance to survive than middle or lower class.
+- Female passengers have a better chance to survive than male, which is as expected.
+- The Fare plot suggests that survived people paid more than the deceased. we notice that people paid as high as $500 for the ticket. So I suspect this kind of ticket is group ticket. Family members or friends are likely to buy tickets like these.
+- The distribution of Age variable seems quite similar for different passenger fate. But we know that when the Titanic sank, “women and children first” rule was carried out. This is a very important information for the project, so I will keep Age variable in the model anyway.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 #Create a new column with all the different titles
@@ -187,7 +217,7 @@ labels=names(train2), cex.axis=.7,
 gap=3, ylab=c("Missing data","Pattern"))
 ```
 
-We can see that Age was missing nearly 20% of its values. This data was imputed using the rpart function.
+From the plot and table, we can see that there are 263 NAs (roughly 20%) in Age variable,  We can see that Age was missing nearly 20% of its values. This data was imputed using the rpart function.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #source: https://cran.r-project.org/web/packages/rpart/vignettes/longintro.pdf
@@ -198,10 +228,20 @@ train3$Age[is.na(train3$Age)] <- predict(predicted_age, train3[is.na(train3$Age)
 ```
 
 
-## Models
+## Modeling
+
+After exploring the patterns and creating new features, now I will build statistical models to predict the fate of the passengers in the test data set.
+
+Three machine learning methods are used in this project:
+
+- Binomial with logit link function (w/ Imputed data)
+- Stepwise regression
+- Random Forest
 
 
-#### Model 1: Binomial with logit link function (w/ Imputed data)
+### Model 1: Binomial with logit link function (w/ Imputed data)
+
+This model is used when the data have binary outcomes.  We fit a generalized linear model (binomial with logit link function) with Pclass, Sex, title, Embarked, Fare, Age, SibSp and Parch, as predictors of the number of survived passenger. we can see that Pclass, Sex, Age and SibSp are all significant variables. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 model1 <- glm(Survived ~ Pclass + Sex + title + Embarked + Fare + Age + SibSp + Parch, family = binomial(link = "logit"), train3)
@@ -209,12 +249,12 @@ summary(model1)
 ```
 
 
-#### Model 2: Stepwise
+### Model 2: Stepwise
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 model2 <- step(model1)
 ```
-
+The AIC listed on the far right is what the model would have if we drop the variable in question. Lower AIC values are still better, The lowest AIC possible, can be selected as the best model
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -258,7 +298,9 @@ curve <- roc(response = train4$Survived,
 ```
 
 
-#### Model 3: Random Forest
+### Model 3: Random Forest
+
+Random Forest is our favorite machine learning algorithm so far. We will use the randomForest function from the randomForest package.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
@@ -280,7 +322,7 @@ model3.1
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 which.min(model3.1$mse)
 ```
-
+The plot below shows the importance of the variables judged by the mean decrease accuracy. A variable is considered the most important if the accuracy of the model without it decreased the most compared to the full model. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3)}
 varImpPlot(model3)
@@ -425,7 +467,7 @@ The model with the most accurate result is model 2. Tweaking the thresholds chan
 
 The models might see greater accuracy testing different methods of imputation. The age column saw the greatest amount of missing values, focusing on creating accurate age values will most likely improve the models.
 
-\newline
+\newpage
 
 ## Appendix
 
