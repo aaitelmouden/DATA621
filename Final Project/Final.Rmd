@@ -248,7 +248,7 @@ confusionMatrix(as.factor(predicted.classes), as.factor(train4$Survived), positi
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3)}
 curve <- roc(response = train4$Survived, 
     predictor = predicted.classes, 
     plot = TRUE, 
@@ -259,7 +259,7 @@ curve <- roc(response = train4$Survived,
 
 #### Model 3: Random Forest
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 
 set.seed(51)
 model3 <- randomForest(factor(Survived) ~ Pclass + title + Sex + Fare + SibSp + Parch + Age + Embarked, data = train3)
@@ -281,12 +281,12 @@ which.min(model3.1$mse)
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3)}
 varImpPlot(model3)
 ```
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.dim=c(4,3)}
 plot(model3.1)
 ```
 
