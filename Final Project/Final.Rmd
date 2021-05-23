@@ -244,7 +244,8 @@ table("Predictions" = train4$pred.class, "Actual" = train4$Survived)
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-confusionMatrix(as.factor(predicted.classes), as.factor(train4$Survived), positive = '1')
+a <- confusionMatrix(as.factor(predicted.classes), as.factor(train4$Survived), positive = '1')
+
 ```
 
 
@@ -426,7 +427,7 @@ The model with the most accurate result is model 2. Tweaking the thresholds chan
 
 The models might see greater accuracy testing different methods of imputation. The age column saw the greatest amount of missing values, focusing on creating accurate age values will most likely improve the models.
 
-
+\newline
 
 ## Appendix
 
