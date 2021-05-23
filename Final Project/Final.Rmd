@@ -535,7 +535,7 @@ train3$Age[is.na(train3$Age)] <- predict(predicted_age, train3[is.na(train3$Age)
 
 
 
-```{r}
+```{}
 
 #### Model 1: Binomial with logit link function (w/ Imputed data)
 
@@ -715,5 +715,5 @@ colnames(sub3) = c("PassengerId", "Survived")
 
 
 
-```
+
 
